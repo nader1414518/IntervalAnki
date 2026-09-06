@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../local/app_database.dart';
 import '../local/database_provider.dart';
+import '../local/image_occlusion.dart';
 import '../local/tables.dart' show CardQueue;
 
 part 'note_repository.g.dart';
@@ -214,7 +215,8 @@ class NoteRepository {
   /// except for a Cloze note type (detected by a `{{cloze:` template),
   /// which generates one card per distinct `{{cN::...}}` deletion number
   /// found in [fieldValues] (falling back to a single card if none are
-  /// found, rather than blocking the note's creation).
+  /// found, rather than blocking the note's creation) — or an Image
+  /// Occlusion note type, one card per mask in its "Masks" field.
   Future<List<int>> _cardTemplateOrds(
     int noteTypeId,
     List<String> fieldValues,
@@ -222,6 +224,13 @@ class NoteRepository {
     final templates = await (_db.select(
       _db.templates,
     )..where((t) => t.noteTypeId.equals(noteTypeId))).get();
+
+    if (templates.any((t) => t.front.contains('{{image-occlusion-front}}'))) {
+      final masksJson = fieldValues.length > 1 ? fieldValues[1] : '';
+      final maskCount = decodeMasks(masksJson).length;
+      return List.generate(maskCount, (i) => i);
+    }
+
     final isCloze = templates.any((t) => t.front.contains('{{cloze:'));
     if (!isCloze) {
       return templates.map((t) => t.ord).toList();

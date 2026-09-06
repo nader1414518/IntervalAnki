@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../data/local/app_database.dart';
@@ -184,31 +185,42 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
               loading: () => const LinearProgressIndicator(),
             ),
             const SizedBox(height: 16),
-            Expanded(
-              child: ListView(
-                children: [
-                  for (var i = 0; i < _fields.length; i++)
-                    _FieldEditor(
-                      label: _fields[i].name,
-                      controller: _fieldControllers[i],
-                      onInsertImage: () => _insertImage(_fieldControllers[i]),
+            if (_noteType?.name == imageOcclusionNoteTypeName)
+              Expanded(
+                child: _ImageOcclusionRedirect(
+                  deck: _deck,
+                  isEditing: _isEditing,
+                ),
+              )
+            else ...[
+              Expanded(
+                child: ListView(
+                  children: [
+                    for (var i = 0; i < _fields.length; i++)
+                      _FieldEditor(
+                        label: _fields[i].name,
+                        controller: _fieldControllers[i],
+                        onInsertImage: () => _insertImage(_fieldControllers[i]),
+                      ),
+                    TextField(
+                      controller: _tagsController,
+                      decoration: const InputDecoration(
+                        labelText: 'Tags (space-separated)',
+                      ),
                     ),
-                  TextField(
-                    controller: _tagsController,
-                    decoration: const InputDecoration(
-                      labelText: 'Tags (space-separated)',
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: _saving || _deck == null || _noteType == null
-                  ? null
-                  : _save,
-              child: Text(_saving ? 'Saving…' : (_isEditing ? 'Save' : 'Add')),
-            ),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: _saving || _deck == null || _noteType == null
+                    ? null
+                    : _save,
+                child: Text(
+                  _saving ? 'Saving…' : (_isEditing ? 'Save' : 'Add'),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -271,6 +283,59 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
           result.wasDuplicate
               ? 'Card added (looks like a possible duplicate).'
               : 'Card added.',
+        ),
+      ),
+    );
+  }
+}
+
+/// Image Occlusion notes aren't built from plain text fields — this stands
+/// in for the field list, handing off to the dedicated editor (create) or
+/// explaining the current limitation (edit: masks aren't editable yet, so
+/// there's nothing useful to show here beyond "delete and redo").
+class _ImageOcclusionRedirect extends StatelessWidget {
+  const _ImageOcclusionRedirect({required this.deck, required this.isEditing});
+
+  final Deck? deck;
+  final bool isEditing;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isEditing) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            "Image Occlusion notes can't be edited here yet — delete "
+            'this card from Browse and create a new one instead.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.image_outlined, size: 40),
+            const SizedBox(height: 12),
+            const Text(
+              'Image Occlusion cards are built in their own editor: pick '
+              'an image, then draw a box over each region to hide.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: deck == null
+                  ? null
+                  : () => unawaited(
+                      context.push('/image-occlusion?deckId=${deck!.id}'),
+                    ),
+              child: const Text('Open Image Occlusion editor'),
+            ),
+          ],
         ),
       ),
     );

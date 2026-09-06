@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../data/local/media_storage.dart';
+
 /// Renders a resolved card face (front or back HTML) with its note type's
 /// CSS, sandboxed with no network access and JavaScript disabled (PRD §6
 /// notes JS as a possible extension for community-deck compatibility —
@@ -44,11 +46,13 @@ class CardWebView extends StatefulWidget {
 
 class _CardWebViewState extends State<CardWebView> {
   late final WebViewController _controller;
+  late final Future<String> _mediaDir;
 
   @override
   void initState() {
     super.initState();
     _controller = WebViewController();
+    _mediaDir = MediaStorage().directoryPath();
     unawaited(_init());
   }
 
@@ -84,7 +88,7 @@ class _CardWebViewState extends State<CardWebView> {
     return rules.toString();
   }
 
-  Future<void> _load() {
+  Future<void> _load() async {
     final document =
         '''
 <!DOCTYPE html>
@@ -97,7 +101,12 @@ class _CardWebViewState extends State<CardWebView> {
 <body class="card">${widget.html}</body>
 </html>
 ''';
-    return _controller.loadHtmlString(document);
+    // A relative `<img src="...">` (every embedded field image, plus
+    // Image Occlusion's own picture) otherwise has nothing to resolve
+    // against — WebView content loaded via loadHtmlString has no
+    // filesystem context of its own.
+    final mediaDir = await _mediaDir;
+    await _controller.loadHtmlString(document, baseUrl: 'file://$mediaDir/');
   }
 
   @override

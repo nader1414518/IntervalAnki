@@ -8,6 +8,7 @@ import '../../features/browse/presentation/browse_screen.dart';
 import '../../features/browse/presentation/trash_screen.dart';
 import '../../features/decks/presentation/deck_list_screen.dart';
 import '../../features/decks/presentation/deck_options_screen.dart';
+import '../../features/image_occlusion/presentation/image_occlusion_editor_screen.dart';
 import '../../features/import/presentation/import_screen.dart';
 import '../../features/note_types/presentation/note_type_editor_screen.dart';
 import '../../features/note_types/presentation/note_type_list_screen.dart';
@@ -59,6 +60,16 @@ GoRouter appRouter(Ref ref) {
           final deckId = state.uri.queryParameters['deckId'];
           return AddNoteScreen(
             noteId: noteId == null ? null : int.parse(noteId),
+            deckId: deckId == null ? null : int.parse(deckId),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/image-occlusion',
+        name: ImageOcclusionEditorScreen.routeName,
+        builder: (context, state) {
+          final deckId = state.uri.queryParameters['deckId'];
+          return ImageOcclusionEditorScreen(
             deckId: deckId == null ? null : int.parse(deckId),
           );
         },

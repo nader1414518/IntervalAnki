@@ -28,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -52,6 +52,12 @@ class AppDatabase extends _$AppDatabase {
         await migrator.addColumn(settings, settings.dailyReminderMinute);
         await migrator.createTable(studyStreaks);
         await into(studyStreaks).insert(const StudyStreaksCompanion());
+      }
+      if (from < 5) {
+        // No schema change — just seeds the new built-in note type for
+        // installs that already exist, since _seedDefaults only runs
+        // on a brand-new database.
+        await _seedImageOcclusionNoteType(this);
       }
     },
   );
@@ -87,6 +93,32 @@ Future<void> _seedDefaults(AppDatabase db) async {
   await _seedBasicReversedNoteType(db);
   await _seedBasicTypeInAnswerNoteType(db);
   await _seedClozeNoteType(db);
+  await _seedImageOcclusionNoteType(db);
+}
+
+/// Sentinel front/back "templates" for the Image Occlusion note type,
+/// detected by name (see [imageOcclusionNoteTypeName]) rather than run
+/// through `packages/card_template`'s `{{Field}}` substitution — occlusion
+/// rendering needs to draw a variable number of image-relative rectangles,
+/// which that mustache-like syntax has no way to express. `CardRepository`
+/// builds the actual front/back HTML directly instead.
+const imageOcclusionNoteTypeName = 'Image Occlusion';
+
+Future<void> _seedImageOcclusionNoteType(AppDatabase db) async {
+  final noteTypeId = await _insertNoteType(db, imageOcclusionNoteTypeName);
+  await _insertFields(db, noteTypeId, ['Image', 'Masks', 'Extra']);
+  await db
+      .into(db.templates)
+      .insert(
+        TemplatesCompanion.insert(
+          noteTypeId: noteTypeId,
+          name: 'Card 1',
+          front: '{{image-occlusion-front}}',
+          back: '{{image-occlusion-back}}',
+          ord: 0,
+          css: const Value(_defaultCardCss),
+        ),
+      );
 }
 
 Future<int> _insertNoteType(AppDatabase db, String name) {

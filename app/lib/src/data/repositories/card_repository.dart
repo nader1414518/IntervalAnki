@@ -8,6 +8,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../local/app_database.dart';
 import '../local/database_provider.dart';
+import '../local/image_occlusion.dart';
 import '../local/tables.dart';
 import 'streak_repository.dart';
 
@@ -95,6 +96,13 @@ class CardRepository {
         noteFields[i].name: values[i],
     };
 
+    final isImageOcclusion = templates.any(
+      (t) => t.front.contains('{{image-occlusion-front}}'),
+    );
+    if (isImageOcclusion) {
+      return _imageOcclusionRenderData(card, templates.first, fields);
+    }
+
     final isCloze = templates.any((t) => t.front.contains('{{cloze:'));
     final template = isCloze
         ? templates.first
@@ -120,6 +128,58 @@ class CardRepository {
       back: back,
       css: template.css,
       clozeOrd: clozeOrd,
+    );
+  }
+
+  /// Builds an Image Occlusion card's front/back directly, rather than
+  /// through `packages/card_template`'s `{{Field}}` substitution — showing
+  /// a variable number of image-relative rectangles isn't expressible in
+  /// that mustache-like syntax. "Hide one, guess one": the front hides only
+  /// the mask at [StudyCard.templateOrd], leaving every other region
+  /// visible for context; the back reveals the image fully unmasked.
+  ReviewCardData _imageOcclusionRenderData(
+    StudyCard card,
+    CardTemplate template,
+    Map<String, String> fields,
+  ) {
+    final imageFilename = fields['Image'] ?? '';
+    final masks = decodeMasks(fields['Masks'] ?? '');
+    final extra = fields['Extra'] ?? '';
+    const style =
+        '<style>'
+        '.io-wrap { position: relative; display: inline-block; '
+        'max-width: 100%; } '
+        '.io-image { max-width: 100%; display: block; } '
+        '.io-mask { position: absolute; background: #2b2b2b; '
+        'border-radius: 2px; } '
+        '</style>';
+
+    String maskDiv(ImageOcclusionMask mask) =>
+        '<div class="io-mask" style="left:${mask.left}%; top:${mask.top}%; '
+        'width:${mask.width}%; height:${mask.height}%;"></div>';
+
+    final targetMask = card.templateOrd < masks.length
+        ? masks[card.templateOrd]
+        : null;
+    final front =
+        '$style '
+        '<div class="io-wrap"> '
+        '<img class="io-image" src="$imageFilename"> '
+        '${targetMask == null ? '' : maskDiv(targetMask)}'
+        '</div>';
+    final back =
+        '$style '
+        '<div class="io-wrap"> '
+        '<img class="io-image" src="$imageFilename"> '
+        '</div> '
+        '${extra.isEmpty ? '' : '<div class="io-extra">$extra</div>'}';
+
+    return ReviewCardData(
+      card: card,
+      fields: fields,
+      front: front,
+      back: back,
+      css: template.css,
     );
   }
 
