@@ -25,7 +25,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   final Set<int> _selected = {};
   bool _loading = true;
 
-  static const _flagColors = [
+  static const List<Color> _flagColors = [
     Colors.red,
     Colors.orange,
     Colors.green,
@@ -100,10 +100,8 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
       appBar: AppBar(
         title: TextField(
           controller: _queryController,
-          style: const TextStyle(color: Colors.white),
           decoration: const InputDecoration(
             hintText: 'deck:Verbs is:due tag:hard',
-            hintStyle: TextStyle(color: Colors.white70),
             border: InputBorder.none,
           ),
           onSubmitted: (_) => unawaited(_search()),

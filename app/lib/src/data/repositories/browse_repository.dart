@@ -81,28 +81,27 @@ class BrowseRepository {
   }) async {
     final rows = await _allRows();
     final terms = query.trim().split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
-    final matching = rows.where((row) {
-      for (final term in terms) {
-        final negate = term.startsWith('-');
-        final body = negate ? term.substring(1) : term;
-        final matched = _matchesTerm(row, body);
-        if (matched == negate) return false;
-      }
-      return true;
-    }).toList();
-
-    matching.sort((a, b) {
-      switch (sortKey) {
-        case BrowseSortKey.due:
-          return a.card.due.compareTo(b.card.due);
-        case BrowseSortKey.deck:
-          return a.deckName.compareTo(b.deckName);
-        case BrowseSortKey.noteType:
-          return a.noteTypeName.compareTo(b.noteTypeName);
-        case BrowseSortKey.flag:
-          return b.card.flag.compareTo(a.card.flag);
-      }
-    });
+    final matching =
+        rows.where((row) {
+          for (final term in terms) {
+            final negate = term.startsWith('-');
+            final body = negate ? term.substring(1) : term;
+            final matched = _matchesTerm(row, body);
+            if (matched == negate) return false;
+          }
+          return true;
+        }).toList()..sort((a, b) {
+          switch (sortKey) {
+            case BrowseSortKey.due:
+              return a.card.due.compareTo(b.card.due);
+            case BrowseSortKey.deck:
+              return a.deckName.compareTo(b.deckName);
+            case BrowseSortKey.noteType:
+              return a.noteTypeName.compareTo(b.noteTypeName);
+            case BrowseSortKey.flag:
+              return b.card.flag.compareTo(a.card.flag);
+          }
+        });
     return matching;
   }
 

@@ -35,9 +35,10 @@ class TagRepository {
       for (final note in notes) {
         final tags = note.tags.trim().split(RegExp(r'\s+'));
         if (!tags.contains(oldName)) continue;
-        final updated = {for (final t in tags) t == oldName ? newName : t}
-            .where((t) => t.isNotEmpty)
-            .toList();
+        final updated = {
+          for (final t in tags)
+            if (t == oldName) newName else t,
+        }.where((t) => t.isNotEmpty).toList();
         await (_db.update(_db.notes)..where((n) => n.id.equals(note.id))).write(
           NotesCompanion(tags: Value(' ${updated.join(' ')} ')),
         );
