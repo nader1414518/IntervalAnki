@@ -198,4 +198,32 @@ class Settings extends Table {
       boolean().withDefault(const Constant(true))();
   BoolColumn get onboardingCompleted =>
       boolean().withDefault(const Constant(false))();
+
+  /// Daily study reminder (PRD §4.10) — a local notification at
+  /// [dailyReminderHour]:[dailyReminderMinute] device-local time.
+  BoolColumn get dailyReminderEnabled =>
+      boolean().withDefault(const Constant(false))();
+  IntColumn get dailyReminderHour =>
+      integer().withDefault(const Constant(20))();
+  IntColumn get dailyReminderMinute =>
+      integer().withDefault(const Constant(0))();
+}
+
+/// Tracks the user's daily-study streak (PRD §4.10). A singleton row like
+/// [Settings], updated whenever a review is graded on a new calendar day.
+@DataClassName('StudyStreak')
+class StudyStreaks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get currentStreak => integer().withDefault(const Constant(0))();
+  IntColumn get longestStreak => integer().withDefault(const Constant(0))();
+
+  /// The day number (days since the Unix epoch UTC — see
+  /// `currentDayNumber()`) a card was last graded, `null` before the first
+  /// review. Used to tell whether today already extended the streak, and
+  /// how large the gap since the last study day is.
+  IntColumn get lastStudyDay => integer().nullable()();
+
+  /// Banked "streak freezes" (PRD §4.10's protection mechanic), consumed
+  /// automatically to cover a single missed day without breaking the streak.
+  IntColumn get freezesAvailable => integer().withDefault(const Constant(0))();
 }

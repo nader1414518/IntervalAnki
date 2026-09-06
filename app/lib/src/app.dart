@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'data/local/backup_service.dart';
+import 'data/local/notification_service.dart';
 import 'data/local/tables.dart' show AppThemeMode;
 import 'data/repositories/settings_repository.dart';
 
@@ -12,7 +13,9 @@ class IntervalApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(autoBackupOnStartupProvider);
+    ref
+      ..watch(autoBackupOnStartupProvider)
+      ..watch(notificationScheduleSyncProvider);
     final router = ref.watch(appRouterProvider);
     final settings = ref.watch(settingsProvider).value;
     final accentColor = settings?.accentColor == null

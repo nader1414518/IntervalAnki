@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/repositories/deck_repository.dart';
+import '../../../data/repositories/streak_repository.dart';
 import 'deck_name_sheet.dart';
 
 /// The deck-list home screen (PRD §5.5 — a card-style tree in later
@@ -19,10 +20,16 @@ class DeckListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final decks = ref.watch(deckListProvider);
+    final streak = ref.watch(streakProvider).value;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Interval'),
         actions: [
+          if (streak != null && streak.currentStreak > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Center(child: _StreakBadge(days: streak.currentStreak)),
+            ),
           IconButton(
             icon: const Icon(Icons.add_card_outlined),
             tooltip: 'Add cards',
@@ -39,6 +46,7 @@ class DeckListScreen extends ConsumerWidget {
               PopupMenuItem(value: '/note-types', child: Text('Note types')),
               PopupMenuItem(value: '/tags', child: Text('Tags')),
               PopupMenuItem(value: '/trash', child: Text('Trash')),
+              PopupMenuItem(value: '/stats', child: Text('Statistics')),
               PopupMenuItem(value: '/import', child: Text('Import .apkg')),
               PopupMenuItem(value: '/settings', child: Text('Settings')),
             ],
@@ -289,6 +297,41 @@ class _AnimatedEntryState extends State<_AnimatedEntry>
     return FadeTransition(
       opacity: _fade,
       child: SlideTransition(position: _slide, child: widget.child),
+    );
+  }
+}
+
+/// A small "current streak" indicator (PRD §4.10) in the deck list's app
+/// bar — only shown once there's a streak worth showing.
+class _StreakBadge extends StatelessWidget {
+  const _StreakBadge({required this.days});
+
+  final int days;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: '$days-day streak',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🔥', style: TextStyle(fontSize: 14)),
+            const SizedBox(width: 4),
+            Text(
+              '$days',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

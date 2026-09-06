@@ -3916,6 +3916,43 @@ class $SettingsTable extends Settings
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _dailyReminderEnabledMeta =
+      const VerificationMeta('dailyReminderEnabled');
+  @override
+  late final GeneratedColumn<bool> dailyReminderEnabled = GeneratedColumn<bool>(
+    'daily_reminder_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("daily_reminder_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _dailyReminderHourMeta = const VerificationMeta(
+    'dailyReminderHour',
+  );
+  @override
+  late final GeneratedColumn<int> dailyReminderHour = GeneratedColumn<int>(
+    'daily_reminder_hour',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(20),
+  );
+  static const VerificationMeta _dailyReminderMinuteMeta =
+      const VerificationMeta('dailyReminderMinute');
+  @override
+  late final GeneratedColumn<int> dailyReminderMinute = GeneratedColumn<int>(
+    'daily_reminder_minute',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3927,6 +3964,9 @@ class $SettingsTable extends Settings
     reducedMotion,
     autoBackupEnabled,
     onboardingCompleted,
+    dailyReminderEnabled,
+    dailyReminderHour,
+    dailyReminderMinute,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4006,6 +4046,33 @@ class $SettingsTable extends Settings
         ),
       );
     }
+    if (data.containsKey('daily_reminder_enabled')) {
+      context.handle(
+        _dailyReminderEnabledMeta,
+        dailyReminderEnabled.isAcceptableOrUnknown(
+          data['daily_reminder_enabled']!,
+          _dailyReminderEnabledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('daily_reminder_hour')) {
+      context.handle(
+        _dailyReminderHourMeta,
+        dailyReminderHour.isAcceptableOrUnknown(
+          data['daily_reminder_hour']!,
+          _dailyReminderHourMeta,
+        ),
+      );
+    }
+    if (data.containsKey('daily_reminder_minute')) {
+      context.handle(
+        _dailyReminderMinuteMeta,
+        dailyReminderMinute.isAcceptableOrUnknown(
+          data['daily_reminder_minute']!,
+          _dailyReminderMinuteMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4053,6 +4120,18 @@ class $SettingsTable extends Settings
         DriftSqlType.bool,
         data['${effectivePrefix}onboarding_completed'],
       )!,
+      dailyReminderEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}daily_reminder_enabled'],
+      )!,
+      dailyReminderHour: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}daily_reminder_hour'],
+      )!,
+      dailyReminderMinute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}daily_reminder_minute'],
+      )!,
     );
   }
 
@@ -4084,6 +4163,12 @@ class AppSettings extends DataClass implements Insertable<AppSettings> {
   final bool reducedMotion;
   final bool autoBackupEnabled;
   final bool onboardingCompleted;
+
+  /// Daily study reminder (PRD §4.10) — a local notification at
+  /// [dailyReminderHour]:[dailyReminderMinute] device-local time.
+  final bool dailyReminderEnabled;
+  final int dailyReminderHour;
+  final int dailyReminderMinute;
   const AppSettings({
     required this.id,
     required this.themeMode,
@@ -4094,6 +4179,9 @@ class AppSettings extends DataClass implements Insertable<AppSettings> {
     required this.reducedMotion,
     required this.autoBackupEnabled,
     required this.onboardingCompleted,
+    required this.dailyReminderEnabled,
+    required this.dailyReminderHour,
+    required this.dailyReminderMinute,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4115,6 +4203,9 @@ class AppSettings extends DataClass implements Insertable<AppSettings> {
     map['reduced_motion'] = Variable<bool>(reducedMotion);
     map['auto_backup_enabled'] = Variable<bool>(autoBackupEnabled);
     map['onboarding_completed'] = Variable<bool>(onboardingCompleted);
+    map['daily_reminder_enabled'] = Variable<bool>(dailyReminderEnabled);
+    map['daily_reminder_hour'] = Variable<int>(dailyReminderHour);
+    map['daily_reminder_minute'] = Variable<int>(dailyReminderMinute);
     return map;
   }
 
@@ -4133,6 +4224,9 @@ class AppSettings extends DataClass implements Insertable<AppSettings> {
       reducedMotion: Value(reducedMotion),
       autoBackupEnabled: Value(autoBackupEnabled),
       onboardingCompleted: Value(onboardingCompleted),
+      dailyReminderEnabled: Value(dailyReminderEnabled),
+      dailyReminderHour: Value(dailyReminderHour),
+      dailyReminderMinute: Value(dailyReminderMinute),
     );
   }
 
@@ -4155,6 +4249,13 @@ class AppSettings extends DataClass implements Insertable<AppSettings> {
       onboardingCompleted: serializer.fromJson<bool>(
         json['onboardingCompleted'],
       ),
+      dailyReminderEnabled: serializer.fromJson<bool>(
+        json['dailyReminderEnabled'],
+      ),
+      dailyReminderHour: serializer.fromJson<int>(json['dailyReminderHour']),
+      dailyReminderMinute: serializer.fromJson<int>(
+        json['dailyReminderMinute'],
+      ),
     );
   }
   @override
@@ -4172,6 +4273,9 @@ class AppSettings extends DataClass implements Insertable<AppSettings> {
       'reducedMotion': serializer.toJson<bool>(reducedMotion),
       'autoBackupEnabled': serializer.toJson<bool>(autoBackupEnabled),
       'onboardingCompleted': serializer.toJson<bool>(onboardingCompleted),
+      'dailyReminderEnabled': serializer.toJson<bool>(dailyReminderEnabled),
+      'dailyReminderHour': serializer.toJson<int>(dailyReminderHour),
+      'dailyReminderMinute': serializer.toJson<int>(dailyReminderMinute),
     };
   }
 
@@ -4185,6 +4289,9 @@ class AppSettings extends DataClass implements Insertable<AppSettings> {
     bool? reducedMotion,
     bool? autoBackupEnabled,
     bool? onboardingCompleted,
+    bool? dailyReminderEnabled,
+    int? dailyReminderHour,
+    int? dailyReminderMinute,
   }) => AppSettings(
     id: id ?? this.id,
     themeMode: themeMode ?? this.themeMode,
@@ -4197,6 +4304,9 @@ class AppSettings extends DataClass implements Insertable<AppSettings> {
     reducedMotion: reducedMotion ?? this.reducedMotion,
     autoBackupEnabled: autoBackupEnabled ?? this.autoBackupEnabled,
     onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+    dailyReminderEnabled: dailyReminderEnabled ?? this.dailyReminderEnabled,
+    dailyReminderHour: dailyReminderHour ?? this.dailyReminderHour,
+    dailyReminderMinute: dailyReminderMinute ?? this.dailyReminderMinute,
   );
   AppSettings copyWithCompanion(SettingsCompanion data) {
     return AppSettings(
@@ -4223,6 +4333,15 @@ class AppSettings extends DataClass implements Insertable<AppSettings> {
       onboardingCompleted: data.onboardingCompleted.present
           ? data.onboardingCompleted.value
           : this.onboardingCompleted,
+      dailyReminderEnabled: data.dailyReminderEnabled.present
+          ? data.dailyReminderEnabled.value
+          : this.dailyReminderEnabled,
+      dailyReminderHour: data.dailyReminderHour.present
+          ? data.dailyReminderHour.value
+          : this.dailyReminderHour,
+      dailyReminderMinute: data.dailyReminderMinute.present
+          ? data.dailyReminderMinute.value
+          : this.dailyReminderMinute,
     );
   }
 
@@ -4237,7 +4356,10 @@ class AppSettings extends DataClass implements Insertable<AppSettings> {
           ..write('answerButtonCount: $answerButtonCount, ')
           ..write('reducedMotion: $reducedMotion, ')
           ..write('autoBackupEnabled: $autoBackupEnabled, ')
-          ..write('onboardingCompleted: $onboardingCompleted')
+          ..write('onboardingCompleted: $onboardingCompleted, ')
+          ..write('dailyReminderEnabled: $dailyReminderEnabled, ')
+          ..write('dailyReminderHour: $dailyReminderHour, ')
+          ..write('dailyReminderMinute: $dailyReminderMinute')
           ..write(')'))
         .toString();
   }
@@ -4253,6 +4375,9 @@ class AppSettings extends DataClass implements Insertable<AppSettings> {
     reducedMotion,
     autoBackupEnabled,
     onboardingCompleted,
+    dailyReminderEnabled,
+    dailyReminderHour,
+    dailyReminderMinute,
   );
   @override
   bool operator ==(Object other) =>
@@ -4266,7 +4391,10 @@ class AppSettings extends DataClass implements Insertable<AppSettings> {
           other.answerButtonCount == this.answerButtonCount &&
           other.reducedMotion == this.reducedMotion &&
           other.autoBackupEnabled == this.autoBackupEnabled &&
-          other.onboardingCompleted == this.onboardingCompleted);
+          other.onboardingCompleted == this.onboardingCompleted &&
+          other.dailyReminderEnabled == this.dailyReminderEnabled &&
+          other.dailyReminderHour == this.dailyReminderHour &&
+          other.dailyReminderMinute == this.dailyReminderMinute);
 }
 
 class SettingsCompanion extends UpdateCompanion<AppSettings> {
@@ -4279,6 +4407,9 @@ class SettingsCompanion extends UpdateCompanion<AppSettings> {
   final Value<bool> reducedMotion;
   final Value<bool> autoBackupEnabled;
   final Value<bool> onboardingCompleted;
+  final Value<bool> dailyReminderEnabled;
+  final Value<int> dailyReminderHour;
+  final Value<int> dailyReminderMinute;
   const SettingsCompanion({
     this.id = const Value.absent(),
     this.themeMode = const Value.absent(),
@@ -4289,6 +4420,9 @@ class SettingsCompanion extends UpdateCompanion<AppSettings> {
     this.reducedMotion = const Value.absent(),
     this.autoBackupEnabled = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
+    this.dailyReminderEnabled = const Value.absent(),
+    this.dailyReminderHour = const Value.absent(),
+    this.dailyReminderMinute = const Value.absent(),
   });
   SettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -4300,6 +4434,9 @@ class SettingsCompanion extends UpdateCompanion<AppSettings> {
     this.reducedMotion = const Value.absent(),
     this.autoBackupEnabled = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
+    this.dailyReminderEnabled = const Value.absent(),
+    this.dailyReminderHour = const Value.absent(),
+    this.dailyReminderMinute = const Value.absent(),
   });
   static Insertable<AppSettings> custom({
     Expression<int>? id,
@@ -4311,6 +4448,9 @@ class SettingsCompanion extends UpdateCompanion<AppSettings> {
     Expression<bool>? reducedMotion,
     Expression<bool>? autoBackupEnabled,
     Expression<bool>? onboardingCompleted,
+    Expression<bool>? dailyReminderEnabled,
+    Expression<int>? dailyReminderHour,
+    Expression<int>? dailyReminderMinute,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -4323,6 +4463,11 @@ class SettingsCompanion extends UpdateCompanion<AppSettings> {
       if (autoBackupEnabled != null) 'auto_backup_enabled': autoBackupEnabled,
       if (onboardingCompleted != null)
         'onboarding_completed': onboardingCompleted,
+      if (dailyReminderEnabled != null)
+        'daily_reminder_enabled': dailyReminderEnabled,
+      if (dailyReminderHour != null) 'daily_reminder_hour': dailyReminderHour,
+      if (dailyReminderMinute != null)
+        'daily_reminder_minute': dailyReminderMinute,
     });
   }
 
@@ -4336,6 +4481,9 @@ class SettingsCompanion extends UpdateCompanion<AppSettings> {
     Value<bool>? reducedMotion,
     Value<bool>? autoBackupEnabled,
     Value<bool>? onboardingCompleted,
+    Value<bool>? dailyReminderEnabled,
+    Value<int>? dailyReminderHour,
+    Value<int>? dailyReminderMinute,
   }) {
     return SettingsCompanion(
       id: id ?? this.id,
@@ -4347,6 +4495,9 @@ class SettingsCompanion extends UpdateCompanion<AppSettings> {
       reducedMotion: reducedMotion ?? this.reducedMotion,
       autoBackupEnabled: autoBackupEnabled ?? this.autoBackupEnabled,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+      dailyReminderEnabled: dailyReminderEnabled ?? this.dailyReminderEnabled,
+      dailyReminderHour: dailyReminderHour ?? this.dailyReminderHour,
+      dailyReminderMinute: dailyReminderMinute ?? this.dailyReminderMinute,
     );
   }
 
@@ -4382,6 +4533,17 @@ class SettingsCompanion extends UpdateCompanion<AppSettings> {
     if (onboardingCompleted.present) {
       map['onboarding_completed'] = Variable<bool>(onboardingCompleted.value);
     }
+    if (dailyReminderEnabled.present) {
+      map['daily_reminder_enabled'] = Variable<bool>(
+        dailyReminderEnabled.value,
+      );
+    }
+    if (dailyReminderHour.present) {
+      map['daily_reminder_hour'] = Variable<int>(dailyReminderHour.value);
+    }
+    if (dailyReminderMinute.present) {
+      map['daily_reminder_minute'] = Variable<int>(dailyReminderMinute.value);
+    }
     return map;
   }
 
@@ -4396,7 +4558,392 @@ class SettingsCompanion extends UpdateCompanion<AppSettings> {
           ..write('answerButtonCount: $answerButtonCount, ')
           ..write('reducedMotion: $reducedMotion, ')
           ..write('autoBackupEnabled: $autoBackupEnabled, ')
-          ..write('onboardingCompleted: $onboardingCompleted')
+          ..write('onboardingCompleted: $onboardingCompleted, ')
+          ..write('dailyReminderEnabled: $dailyReminderEnabled, ')
+          ..write('dailyReminderHour: $dailyReminderHour, ')
+          ..write('dailyReminderMinute: $dailyReminderMinute')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $StudyStreaksTable extends StudyStreaks
+    with TableInfo<$StudyStreaksTable, StudyStreak> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StudyStreaksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _currentStreakMeta = const VerificationMeta(
+    'currentStreak',
+  );
+  @override
+  late final GeneratedColumn<int> currentStreak = GeneratedColumn<int>(
+    'current_streak',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _longestStreakMeta = const VerificationMeta(
+    'longestStreak',
+  );
+  @override
+  late final GeneratedColumn<int> longestStreak = GeneratedColumn<int>(
+    'longest_streak',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastStudyDayMeta = const VerificationMeta(
+    'lastStudyDay',
+  );
+  @override
+  late final GeneratedColumn<int> lastStudyDay = GeneratedColumn<int>(
+    'last_study_day',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _freezesAvailableMeta = const VerificationMeta(
+    'freezesAvailable',
+  );
+  @override
+  late final GeneratedColumn<int> freezesAvailable = GeneratedColumn<int>(
+    'freezes_available',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    currentStreak,
+    longestStreak,
+    lastStudyDay,
+    freezesAvailable,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'study_streaks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StudyStreak> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('current_streak')) {
+      context.handle(
+        _currentStreakMeta,
+        currentStreak.isAcceptableOrUnknown(
+          data['current_streak']!,
+          _currentStreakMeta,
+        ),
+      );
+    }
+    if (data.containsKey('longest_streak')) {
+      context.handle(
+        _longestStreakMeta,
+        longestStreak.isAcceptableOrUnknown(
+          data['longest_streak']!,
+          _longestStreakMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_study_day')) {
+      context.handle(
+        _lastStudyDayMeta,
+        lastStudyDay.isAcceptableOrUnknown(
+          data['last_study_day']!,
+          _lastStudyDayMeta,
+        ),
+      );
+    }
+    if (data.containsKey('freezes_available')) {
+      context.handle(
+        _freezesAvailableMeta,
+        freezesAvailable.isAcceptableOrUnknown(
+          data['freezes_available']!,
+          _freezesAvailableMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StudyStreak map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StudyStreak(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      currentStreak: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}current_streak'],
+      )!,
+      longestStreak: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}longest_streak'],
+      )!,
+      lastStudyDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_study_day'],
+      ),
+      freezesAvailable: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}freezes_available'],
+      )!,
+    );
+  }
+
+  @override
+  $StudyStreaksTable createAlias(String alias) {
+    return $StudyStreaksTable(attachedDatabase, alias);
+  }
+}
+
+class StudyStreak extends DataClass implements Insertable<StudyStreak> {
+  final int id;
+  final int currentStreak;
+  final int longestStreak;
+
+  /// The day number (days since the Unix epoch UTC — see
+  /// `currentDayNumber()`) a card was last graded, `null` before the first
+  /// review. Used to tell whether today already extended the streak, and
+  /// how large the gap since the last study day is.
+  final int? lastStudyDay;
+
+  /// Banked "streak freezes" (PRD §4.10's protection mechanic), consumed
+  /// automatically to cover a single missed day without breaking the streak.
+  final int freezesAvailable;
+  const StudyStreak({
+    required this.id,
+    required this.currentStreak,
+    required this.longestStreak,
+    this.lastStudyDay,
+    required this.freezesAvailable,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['current_streak'] = Variable<int>(currentStreak);
+    map['longest_streak'] = Variable<int>(longestStreak);
+    if (!nullToAbsent || lastStudyDay != null) {
+      map['last_study_day'] = Variable<int>(lastStudyDay);
+    }
+    map['freezes_available'] = Variable<int>(freezesAvailable);
+    return map;
+  }
+
+  StudyStreaksCompanion toCompanion(bool nullToAbsent) {
+    return StudyStreaksCompanion(
+      id: Value(id),
+      currentStreak: Value(currentStreak),
+      longestStreak: Value(longestStreak),
+      lastStudyDay: lastStudyDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastStudyDay),
+      freezesAvailable: Value(freezesAvailable),
+    );
+  }
+
+  factory StudyStreak.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StudyStreak(
+      id: serializer.fromJson<int>(json['id']),
+      currentStreak: serializer.fromJson<int>(json['currentStreak']),
+      longestStreak: serializer.fromJson<int>(json['longestStreak']),
+      lastStudyDay: serializer.fromJson<int?>(json['lastStudyDay']),
+      freezesAvailable: serializer.fromJson<int>(json['freezesAvailable']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'currentStreak': serializer.toJson<int>(currentStreak),
+      'longestStreak': serializer.toJson<int>(longestStreak),
+      'lastStudyDay': serializer.toJson<int?>(lastStudyDay),
+      'freezesAvailable': serializer.toJson<int>(freezesAvailable),
+    };
+  }
+
+  StudyStreak copyWith({
+    int? id,
+    int? currentStreak,
+    int? longestStreak,
+    Value<int?> lastStudyDay = const Value.absent(),
+    int? freezesAvailable,
+  }) => StudyStreak(
+    id: id ?? this.id,
+    currentStreak: currentStreak ?? this.currentStreak,
+    longestStreak: longestStreak ?? this.longestStreak,
+    lastStudyDay: lastStudyDay.present ? lastStudyDay.value : this.lastStudyDay,
+    freezesAvailable: freezesAvailable ?? this.freezesAvailable,
+  );
+  StudyStreak copyWithCompanion(StudyStreaksCompanion data) {
+    return StudyStreak(
+      id: data.id.present ? data.id.value : this.id,
+      currentStreak: data.currentStreak.present
+          ? data.currentStreak.value
+          : this.currentStreak,
+      longestStreak: data.longestStreak.present
+          ? data.longestStreak.value
+          : this.longestStreak,
+      lastStudyDay: data.lastStudyDay.present
+          ? data.lastStudyDay.value
+          : this.lastStudyDay,
+      freezesAvailable: data.freezesAvailable.present
+          ? data.freezesAvailable.value
+          : this.freezesAvailable,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StudyStreak(')
+          ..write('id: $id, ')
+          ..write('currentStreak: $currentStreak, ')
+          ..write('longestStreak: $longestStreak, ')
+          ..write('lastStudyDay: $lastStudyDay, ')
+          ..write('freezesAvailable: $freezesAvailable')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    currentStreak,
+    longestStreak,
+    lastStudyDay,
+    freezesAvailable,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StudyStreak &&
+          other.id == this.id &&
+          other.currentStreak == this.currentStreak &&
+          other.longestStreak == this.longestStreak &&
+          other.lastStudyDay == this.lastStudyDay &&
+          other.freezesAvailable == this.freezesAvailable);
+}
+
+class StudyStreaksCompanion extends UpdateCompanion<StudyStreak> {
+  final Value<int> id;
+  final Value<int> currentStreak;
+  final Value<int> longestStreak;
+  final Value<int?> lastStudyDay;
+  final Value<int> freezesAvailable;
+  const StudyStreaksCompanion({
+    this.id = const Value.absent(),
+    this.currentStreak = const Value.absent(),
+    this.longestStreak = const Value.absent(),
+    this.lastStudyDay = const Value.absent(),
+    this.freezesAvailable = const Value.absent(),
+  });
+  StudyStreaksCompanion.insert({
+    this.id = const Value.absent(),
+    this.currentStreak = const Value.absent(),
+    this.longestStreak = const Value.absent(),
+    this.lastStudyDay = const Value.absent(),
+    this.freezesAvailable = const Value.absent(),
+  });
+  static Insertable<StudyStreak> custom({
+    Expression<int>? id,
+    Expression<int>? currentStreak,
+    Expression<int>? longestStreak,
+    Expression<int>? lastStudyDay,
+    Expression<int>? freezesAvailable,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (currentStreak != null) 'current_streak': currentStreak,
+      if (longestStreak != null) 'longest_streak': longestStreak,
+      if (lastStudyDay != null) 'last_study_day': lastStudyDay,
+      if (freezesAvailable != null) 'freezes_available': freezesAvailable,
+    });
+  }
+
+  StudyStreaksCompanion copyWith({
+    Value<int>? id,
+    Value<int>? currentStreak,
+    Value<int>? longestStreak,
+    Value<int?>? lastStudyDay,
+    Value<int>? freezesAvailable,
+  }) {
+    return StudyStreaksCompanion(
+      id: id ?? this.id,
+      currentStreak: currentStreak ?? this.currentStreak,
+      longestStreak: longestStreak ?? this.longestStreak,
+      lastStudyDay: lastStudyDay ?? this.lastStudyDay,
+      freezesAvailable: freezesAvailable ?? this.freezesAvailable,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (currentStreak.present) {
+      map['current_streak'] = Variable<int>(currentStreak.value);
+    }
+    if (longestStreak.present) {
+      map['longest_streak'] = Variable<int>(longestStreak.value);
+    }
+    if (lastStudyDay.present) {
+      map['last_study_day'] = Variable<int>(lastStudyDay.value);
+    }
+    if (freezesAvailable.present) {
+      map['freezes_available'] = Variable<int>(freezesAvailable.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StudyStreaksCompanion(')
+          ..write('id: $id, ')
+          ..write('currentStreak: $currentStreak, ')
+          ..write('longestStreak: $longestStreak, ')
+          ..write('lastStudyDay: $lastStudyDay, ')
+          ..write('freezesAvailable: $freezesAvailable')
           ..write(')'))
         .toString();
   }
@@ -4415,6 +4962,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ReviewLogTable reviewLog = $ReviewLogTable(this);
   late final $MediaTable media = $MediaTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
+  late final $StudyStreaksTable studyStreaks = $StudyStreaksTable(this);
   late final Index idxNotesFirstFieldHash = Index(
     'idx_notes_first_field_hash',
     'CREATE INDEX idx_notes_first_field_hash ON notes (first_field_hash)',
@@ -4442,6 +4990,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     reviewLog,
     media,
     settings,
+    studyStreaks,
     idxNotesFirstFieldHash,
     idxCardsDeckQueueDue,
     idxReviewLogCardId,
@@ -7850,6 +8399,9 @@ typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
   Value<bool> reducedMotion,
   Value<bool> autoBackupEnabled,
   Value<bool> onboardingCompleted,
+  Value<bool> dailyReminderEnabled,
+  Value<int> dailyReminderHour,
+  Value<int> dailyReminderMinute,
 });
 typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
   Value<int> id,
@@ -7861,6 +8413,9 @@ typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
   Value<bool> reducedMotion,
   Value<bool> autoBackupEnabled,
   Value<bool> onboardingCompleted,
+  Value<bool> dailyReminderEnabled,
+  Value<int> dailyReminderHour,
+  Value<int> dailyReminderMinute,
 });
 
 class $$SettingsTableFilterComposer
@@ -7915,6 +8470,21 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<bool> get onboardingCompleted => $composableBuilder(
     column: $table.onboardingCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dailyReminderEnabled => $composableBuilder(
+    column: $table.dailyReminderEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dailyReminderHour => $composableBuilder(
+    column: $table.dailyReminderHour,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dailyReminderMinute => $composableBuilder(
+    column: $table.dailyReminderMinute,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -7972,6 +8542,21 @@ class $$SettingsTableOrderingComposer
     column: $table.onboardingCompleted,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get dailyReminderEnabled => $composableBuilder(
+    column: $table.dailyReminderEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dailyReminderHour => $composableBuilder(
+    column: $table.dailyReminderHour,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dailyReminderMinute => $composableBuilder(
+    column: $table.dailyReminderMinute,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SettingsTableAnnotationComposer
@@ -8023,6 +8608,21 @@ class $$SettingsTableAnnotationComposer
     column: $table.onboardingCompleted,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get dailyReminderEnabled => $composableBuilder(
+    column: $table.dailyReminderEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get dailyReminderHour => $composableBuilder(
+    column: $table.dailyReminderHour,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get dailyReminderMinute => $composableBuilder(
+    column: $table.dailyReminderMinute,
+    builder: (column) => column,
+  );
 }
 
 class $$SettingsTableTableManager
@@ -8065,6 +8665,9 @@ class $$SettingsTableTableManager
                 Value<bool> reducedMotion = const Value.absent(),
                 Value<bool> autoBackupEnabled = const Value.absent(),
                 Value<bool> onboardingCompleted = const Value.absent(),
+                Value<bool> dailyReminderEnabled = const Value.absent(),
+                Value<int> dailyReminderHour = const Value.absent(),
+                Value<int> dailyReminderMinute = const Value.absent(),
               }) => SettingsCompanion(
                 id: id,
                 themeMode: themeMode,
@@ -8075,6 +8678,9 @@ class $$SettingsTableTableManager
                 reducedMotion: reducedMotion,
                 autoBackupEnabled: autoBackupEnabled,
                 onboardingCompleted: onboardingCompleted,
+                dailyReminderEnabled: dailyReminderEnabled,
+                dailyReminderHour: dailyReminderHour,
+                dailyReminderMinute: dailyReminderMinute,
               ),
           createCompanionCallback:
               ({
@@ -8087,6 +8693,9 @@ class $$SettingsTableTableManager
                 Value<bool> reducedMotion = const Value.absent(),
                 Value<bool> autoBackupEnabled = const Value.absent(),
                 Value<bool> onboardingCompleted = const Value.absent(),
+                Value<bool> dailyReminderEnabled = const Value.absent(),
+                Value<int> dailyReminderHour = const Value.absent(),
+                Value<int> dailyReminderMinute = const Value.absent(),
               }) => SettingsCompanion.insert(
                 id: id,
                 themeMode: themeMode,
@@ -8097,6 +8706,9 @@ class $$SettingsTableTableManager
                 reducedMotion: reducedMotion,
                 autoBackupEnabled: autoBackupEnabled,
                 onboardingCompleted: onboardingCompleted,
+                dailyReminderEnabled: dailyReminderEnabled,
+                dailyReminderHour: dailyReminderHour,
+                dailyReminderMinute: dailyReminderMinute,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -8129,6 +8741,217 @@ typedef $$SettingsTableProcessedTableManager =
       AppSettings,
       PrefetchHooks Function()
     >;
+typedef $$StudyStreaksTableCreateCompanionBuilder =
+    StudyStreaksCompanion Function({
+      Value<int> id,
+      Value<int> currentStreak,
+      Value<int> longestStreak,
+      Value<int?> lastStudyDay,
+      Value<int> freezesAvailable,
+    });
+typedef $$StudyStreaksTableUpdateCompanionBuilder =
+    StudyStreaksCompanion Function({
+      Value<int> id,
+      Value<int> currentStreak,
+      Value<int> longestStreak,
+      Value<int?> lastStudyDay,
+      Value<int> freezesAvailable,
+    });
+
+class $$StudyStreaksTableFilterComposer
+    extends Composer<_$AppDatabase, $StudyStreaksTable> {
+  $$StudyStreaksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get currentStreak => $composableBuilder(
+    column: $table.currentStreak,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get longestStreak => $composableBuilder(
+    column: $table.longestStreak,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastStudyDay => $composableBuilder(
+    column: $table.lastStudyDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get freezesAvailable => $composableBuilder(
+    column: $table.freezesAvailable,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StudyStreaksTableOrderingComposer
+    extends Composer<_$AppDatabase, $StudyStreaksTable> {
+  $$StudyStreaksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get currentStreak => $composableBuilder(
+    column: $table.currentStreak,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get longestStreak => $composableBuilder(
+    column: $table.longestStreak,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastStudyDay => $composableBuilder(
+    column: $table.lastStudyDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get freezesAvailable => $composableBuilder(
+    column: $table.freezesAvailable,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StudyStreaksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StudyStreaksTable> {
+  $$StudyStreaksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get currentStreak => $composableBuilder(
+    column: $table.currentStreak,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get longestStreak => $composableBuilder(
+    column: $table.longestStreak,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastStudyDay => $composableBuilder(
+    column: $table.lastStudyDay,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get freezesAvailable => $composableBuilder(
+    column: $table.freezesAvailable,
+    builder: (column) => column,
+  );
+}
+
+class $$StudyStreaksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StudyStreaksTable,
+          StudyStreak,
+          $$StudyStreaksTableFilterComposer,
+          $$StudyStreaksTableOrderingComposer,
+          $$StudyStreaksTableAnnotationComposer,
+          $$StudyStreaksTableCreateCompanionBuilder,
+          $$StudyStreaksTableUpdateCompanionBuilder,
+          (
+            StudyStreak,
+            BaseReferences<_$AppDatabase, $StudyStreaksTable, StudyStreak>,
+          ),
+          StudyStreak,
+          PrefetchHooks Function()
+        > {
+  $$StudyStreaksTableTableManager(_$AppDatabase db, $StudyStreaksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StudyStreaksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StudyStreaksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StudyStreaksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> currentStreak = const Value.absent(),
+                Value<int> longestStreak = const Value.absent(),
+                Value<int?> lastStudyDay = const Value.absent(),
+                Value<int> freezesAvailable = const Value.absent(),
+              }) => StudyStreaksCompanion(
+                id: id,
+                currentStreak: currentStreak,
+                longestStreak: longestStreak,
+                lastStudyDay: lastStudyDay,
+                freezesAvailable: freezesAvailable,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> currentStreak = const Value.absent(),
+                Value<int> longestStreak = const Value.absent(),
+                Value<int?> lastStudyDay = const Value.absent(),
+                Value<int> freezesAvailable = const Value.absent(),
+              }) => StudyStreaksCompanion.insert(
+                id: id,
+                currentStreak: currentStreak,
+                longestStreak: longestStreak,
+                lastStudyDay: lastStudyDay,
+                freezesAvailable: freezesAvailable,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$StudyStreaksTable, StudyStreak>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $StudyStreaksTable,
+                    StudyStreak
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StudyStreaksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StudyStreaksTable,
+      StudyStreak,
+      $$StudyStreaksTableFilterComposer,
+      $$StudyStreaksTableOrderingComposer,
+      $$StudyStreaksTableAnnotationComposer,
+      $$StudyStreaksTableCreateCompanionBuilder,
+      $$StudyStreaksTableUpdateCompanionBuilder,
+      (
+        StudyStreak,
+        BaseReferences<_$AppDatabase, $StudyStreaksTable, StudyStreak>,
+      ),
+      StudyStreak,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8153,4 +8976,6 @@ class $AppDatabaseManager {
       $$MediaTableTableManager(_db, _db.media);
   $$SettingsTableTableManager get settings =>
       $$SettingsTableTableManager(_db, _db.settings);
+  $$StudyStreaksTableTableManager get studyStreaks =>
+      $$StudyStreaksTableTableManager(_db, _db.studyStreaks);
 }

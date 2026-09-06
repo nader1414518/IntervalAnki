@@ -9,6 +9,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../local/app_database.dart';
 import '../local/database_provider.dart';
 import '../local/tables.dart';
+import 'streak_repository.dart';
 
 part 'card_repository.g.dart';
 
@@ -181,6 +182,10 @@ class CardRepository {
           lastReviewedAt: Value(now),
         ),
       );
+      // Grading is the one thing that counts as "studied today" for the
+      // streak (PRD §4.10) — not reverted on undo, since a streak day isn't
+      // meant to be undone by correcting a single misgraded card.
+      await StreakRepository(_db).recordStudyToday();
       return await _db
           .into(_db.reviewLog)
           .insert(

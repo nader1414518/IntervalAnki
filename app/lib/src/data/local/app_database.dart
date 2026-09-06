@@ -17,6 +17,7 @@ part 'app_database.g.dart';
     ReviewLog,
     Media,
     Settings,
+    StudyStreaks,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -27,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -35,6 +36,7 @@ class AppDatabase extends _$AppDatabase {
       await migrator.createAll();
       await _seedDefaults(this);
       await into(settings).insert(const SettingsCompanion());
+      await into(studyStreaks).insert(const StudyStreaksCompanion());
     },
     onUpgrade: (migrator, from, to) async {
       if (from < 2) {
@@ -43,6 +45,13 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await migrator.addColumn(cards, cards.deletedAt);
+      }
+      if (from < 4) {
+        await migrator.addColumn(settings, settings.dailyReminderEnabled);
+        await migrator.addColumn(settings, settings.dailyReminderHour);
+        await migrator.addColumn(settings, settings.dailyReminderMinute);
+        await migrator.createTable(studyStreaks);
+        await into(studyStreaks).insert(const StudyStreaksCompanion());
       }
     },
   );

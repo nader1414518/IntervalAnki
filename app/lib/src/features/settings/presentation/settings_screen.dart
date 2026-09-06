@@ -4,12 +4,18 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/local/backup_service.dart';
+import '../../../data/local/notification_service.dart';
 import '../../../data/local/tables.dart' show AppThemeMode;
 import '../../../data/repositories/settings_repository.dart';
+
+/// Where the "Support Interval" entry (PRD §10 — donations, platform TBD
+/// by eng) sends people.
+const _donationUrl = 'https://buymeacoffee.com/llevelupdev';
 
 /// PRD §4.11: theme/accent, card font, answer-button layout, backups, plus
 /// an accessibility section and a way to replay the first-run wizard.
@@ -72,21 +78,24 @@ class _SettingsBody extends ConsumerWidget {
             padding: const EdgeInsets.only(top: 8),
             child: Wrap(
               spacing: 12,
+              runSpacing: 8,
               children: [
-                for (final color in AppTheme.accentChoices)
+                // The app's own default is always the first choice, so it
+                // reads as "the" default rather than just another color —
+                // labeled explicitly rather than relying on position alone.
+                for (final (index, color) in AppTheme.accentChoices.indexed)
                   _AccentSwatch(
                     color: color,
+                    label: index == 0 ? 'Default' : null,
                     selected: settings.accentColor == null
-                        ? color == AppTheme.accentChoices.first
+                        ? index == 0
                         : settings.accentColor == color.toARGB32(),
                     onTap: () => unawaited(
                       _update(
                         ref,
                         (_) => SettingsCompanion(
                           accentColor: Value(
-                            color == AppTheme.accentChoices.first
-                                ? null
-                                : color.toARGB32(),
+                            index == 0 ? null : color.toARGB32(),
                           ),
                         ),
                       ),
@@ -165,6 +174,25 @@ class _SettingsBody extends ConsumerWidget {
           ),
         ),
         const Divider(),
+        const _SectionHeader('Notifications'),
+        SwitchListTile(
+          title: const Text('Daily study reminder'),
+          subtitle: const Text('A nudge at a time you choose (PRD §4.10)'),
+          value: settings.dailyReminderEnabled,
+          onChanged: (value) => unawaited(_setDailyReminder(ref, value)),
+        ),
+        if (settings.dailyReminderEnabled)
+          ListTile(
+            title: const Text('Reminder time'),
+            trailing: Text(
+              TimeOfDay(
+                hour: settings.dailyReminderHour,
+                minute: settings.dailyReminderMinute,
+              ).format(context),
+            ),
+            onTap: () => unawaited(_pickReminderTime(context, ref, settings)),
+          ),
+        const Divider(),
         const _SectionHeader('Accessibility'),
         SwitchListTile(
           title: const Text('Reduce motion'),
@@ -194,6 +222,17 @@ class _SettingsBody extends ConsumerWidget {
           onTap: () => unawaited(_export(context, ref)),
         ),
         const Divider(),
+        const _SectionHeader('Support'),
+        ListTile(
+          title: const Text('Support Interval'),
+          subtitle: const Text(
+            'Interval is free, with no ads or paywalls — donations are '
+            'entirely optional and fund development.',
+          ),
+          trailing: const Icon(Icons.favorite_outline),
+          onTap: () => unawaited(_openDonationLink(context)),
+        ),
+        const Divider(),
         const _SectionHeader('Onboarding'),
         ListTile(
           title: const Text('Replay the welcome tour'),
@@ -212,6 +251,18 @@ class _SettingsBody extends ConsumerWidget {
     );
   }
 
+  Future<void> _openDonationLink(BuildContext context) async {
+    final launched = await launchUrl(
+      Uri.parse(_donationUrl),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't open the donation link.")),
+      );
+    }
+  }
+
   Future<void> _replayOnboarding(BuildContext context, WidgetRef ref) async {
     await _update(
       ref,
@@ -220,6 +271,41 @@ class _SettingsBody extends ConsumerWidget {
     if (!context.mounted) return;
     context.go('/');
   }
+
+  Future<void> _setDailyReminder(WidgetRef ref, bool enabled) async {
+    // Persist first: the toggle shouldn't hang on a slow (or, on some
+    // simulators, unresponsive) permission round-trip — request it in the
+    // background instead.
+    await _update(
+      ref,
+      (_) => SettingsCompanion(dailyReminderEnabled: Value(enabled)),
+    );
+    if (enabled) {
+      unawaited(ref.read(notificationServiceProvider).requestPermission());
+    }
+  }
+
+  Future<void> _pickReminderTime(
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings,
+  ) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: settings.dailyReminderHour,
+        minute: settings.dailyReminderMinute,
+      ),
+    );
+    if (picked == null) return;
+    await _update(
+      ref,
+      (_) => SettingsCompanion(
+        dailyReminderHour: Value(picked.hour),
+        dailyReminderMinute: Value(picked.minute),
+      ),
+    );
+  }
 }
 
 class _AccentSwatch extends StatelessWidget {
@@ -227,15 +313,17 @@ class _AccentSwatch extends StatelessWidget {
     required this.color,
     required this.selected,
     required this.onTap,
+    this.label,
   });
 
   final Color color;
+  final String? label;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    final swatch = InkWell(
       onTap: onTap,
       customBorder: const CircleBorder(),
       child: Container(
@@ -255,6 +343,15 @@ class _AccentSwatch extends StatelessWidget {
             ? const Icon(Icons.check, color: Colors.white, size: 18)
             : null,
       ),
+    );
+    if (label == null) return swatch;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        swatch,
+        const SizedBox(height: 2),
+        Text(label!, style: Theme.of(context).textTheme.labelSmall),
+      ],
     );
   }
 }

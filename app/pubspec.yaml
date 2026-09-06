@@ -17,9 +17,12 @@ dependencies:
   drift: ^2.34.4
   drift_flutter: ^0.3.1
   file_picker: ^12.2.0
+  fl_chart: ^1.2.0
   flutter:
     sdk: flutter
+  flutter_local_notifications: ^22.3.0
   flutter_riverpod: ^3.4.3
+  flutter_timezone: ^5.1.0
   fsrs:
     path: ../packages/fsrs
   go_router: ^18.0.1
@@ -27,6 +30,8 @@ dependencies:
   path: ^1.9.1
   path_provider: ^2.1.6
   riverpod_annotation: ^4.0.7
+  timezone: ^0.11.1
+  url_launcher: ^6.3.2
   webview_flutter: ^4.14.1
 
 dev_dependencies:

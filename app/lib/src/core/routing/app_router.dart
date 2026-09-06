@@ -14,6 +14,7 @@ import '../../features/note_types/presentation/note_type_list_screen.dart';
 import '../../features/notes/presentation/add_note_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/stats/presentation/stats_screen.dart';
 import '../../features/study/presentation/review_screen.dart';
 import '../../features/tags/presentation/tag_list_screen.dart';
 
@@ -82,6 +83,11 @@ GoRouter appRouter(Ref ref) {
         path: '/trash',
         name: TrashScreen.routeName,
         builder: (context, state) => const TrashScreen(),
+      ),
+      GoRoute(
+        path: '/stats',
+        name: StatsScreen.routeName,
+        builder: (context, state) => const StatsScreen(),
       ),
       GoRoute(
         path: '/import',
