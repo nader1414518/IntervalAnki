@@ -129,6 +129,10 @@ class Cards extends Table {
   /// `0` = no flag, `1`-`7` = one of Anki's seven flag colors.
   IntColumn get flag => integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// When this card was last graded, `null` if it never has been — the
+  /// FSRS engine needs this to compute elapsed time for the next review.
+  DateTimeColumn get lastReviewedAt => dateTime().nullable()();
 }
 
 /// An append-only log of graded reviews, one row per answer. Doubles as the

@@ -74,6 +74,7 @@ class _DeckTile extends ConsumerWidget {
       contentPadding: EdgeInsets.only(left: 16.0 + depth * 20, right: 8),
       leading: const Icon(Icons.style_outlined),
       title: Text(label),
+      onTap: () => unawaited(context.push('/review/${deck.id}')),
       trailing: PopupMenuButton<_DeckAction>(
         onSelected: (action) => _handleAction(context, ref, action),
         itemBuilder: (context) => const [

@@ -6,6 +6,7 @@ import '../../features/decks/presentation/deck_options_screen.dart';
 import '../../features/note_types/presentation/note_type_editor_screen.dart';
 import '../../features/note_types/presentation/note_type_list_screen.dart';
 import '../../features/notes/presentation/add_note_screen.dart';
+import '../../features/study/presentation/review_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -22,6 +23,12 @@ GoRouter appRouter(Ref ref) {
         path: '/add-note',
         name: AddNoteScreen.routeName,
         builder: (context, state) => const AddNoteScreen(),
+      ),
+      GoRoute(
+        path: '/review/:deckId',
+        name: ReviewScreen.routeName,
+        builder: (context, state) =>
+            ReviewScreen(deckId: int.parse(state.pathParameters['deckId']!)),
       ),
       GoRoute(
         path: '/deck-options/:id',

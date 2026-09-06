@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:card_template/card_template.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/card_web_view.dart';
 import '../../../data/repositories/note_type_repository.dart';
 
 /// Create or edit a note type: its fields and the card templates generated
@@ -141,6 +143,7 @@ class _NoteTypeEditorScreenState extends ConsumerState<NoteTypeEditorScreen> {
                 for (var i = 0; i < _templateControllers.length; i++)
                   _TemplateEditor(
                     controllers: _templateControllers[i],
+                    fieldControllers: _fieldControllers,
                     onRemove: _templateControllers.length <= 1
                         ? null
                         : () => setState(
@@ -215,10 +218,45 @@ class _TemplateControllers {
 }
 
 class _TemplateEditor extends StatelessWidget {
-  const _TemplateEditor({required this.controllers, required this.onRemove});
+  const _TemplateEditor({
+    required this.controllers,
+    required this.fieldControllers,
+    required this.onRemove,
+  });
 
   final _TemplateControllers controllers;
+  final List<TextEditingController> fieldControllers;
   final VoidCallback? onRemove;
+
+  void _showPreview(BuildContext context) {
+    final fields = <String, String>{
+      for (final c in fieldControllers)
+        if (c.text.trim().isNotEmpty) c.text.trim(): 'Sample ${c.text.trim()}',
+    };
+    const renderer = CardTemplateRenderer();
+    final front = renderer.renderFront(controllers.front.text, fields);
+    final back = renderer.renderBack(controllers.back.text, fields, front);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: const Text('Preview')),
+          body: Column(
+            children: [
+              const Padding(padding: EdgeInsets.all(8), child: Text('Front')),
+              Expanded(
+                child: CardWebView(html: front, css: controllers.css.text),
+              ),
+              const Divider(height: 1),
+              const Padding(padding: EdgeInsets.all(8), child: Text('Back')),
+              Expanded(
+                child: CardWebView(html: back, css: controllers.css.text),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -238,6 +276,11 @@ class _TemplateEditor extends StatelessWidget {
                       labelText: 'Template name',
                     ),
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.visibility_outlined),
+                  tooltip: 'Preview',
+                  onPressed: () => _showPreview(context),
                 ),
                 IconButton(
                   icon: const Icon(Icons.remove_circle_outline),
