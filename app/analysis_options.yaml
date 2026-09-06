@@ -30,6 +30,10 @@ linter:
     # Opts out of the `new Ctor()` constructor-declaration shorthand; the
     # conventional `ClassName()` form stays clearer to most Dart readers/IDEs.
     unnecessary_type_name_in_constructor: false
+    # This rule assumes sync file I/O is safe, which isn't true in a Flutter
+    # app: sync dart:io calls block the UI isolate. Async is the right choice
+    # here.
+    avoid_slow_async_io: false
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

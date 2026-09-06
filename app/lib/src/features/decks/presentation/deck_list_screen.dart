@@ -23,9 +23,14 @@ class DeckListScreen extends ConsumerWidget {
         title: const Text('Interval'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.add_card_outlined),
+            tooltip: 'Add cards',
+            onPressed: () => unawaited(context.push('/add-note')),
+          ),
+          IconButton(
             icon: const Icon(Icons.style_outlined),
             tooltip: 'Note types',
-            onPressed: () => context.push('/note-types'),
+            onPressed: () => unawaited(context.push('/note-types')),
           ),
         ],
       ),
