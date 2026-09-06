@@ -28,9 +28,16 @@ class DeckListScreen extends ConsumerWidget {
             onPressed: () => unawaited(context.push('/add-note')),
           ),
           IconButton(
-            icon: const Icon(Icons.style_outlined),
-            tooltip: 'Note types',
-            onPressed: () => unawaited(context.push('/note-types')),
+            icon: const Icon(Icons.search),
+            tooltip: 'Browse',
+            onPressed: () => unawaited(context.push('/browse')),
+          ),
+          PopupMenuButton<String>(
+            onSelected: (route) => unawaited(context.push(route)),
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: '/note-types', child: Text('Note types')),
+              PopupMenuItem(value: '/tags', child: Text('Tags')),
+            ],
           ),
         ],
       ),
