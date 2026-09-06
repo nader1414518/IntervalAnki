@@ -1,0 +1,36 @@
+name: interval_anki_workspace
+publish_to: 'none'
+
+environment:
+  sdk: ^3.13.2
+
+workspace:
+  - app
+  - packages/fsrs
+  - packages/anki_format
+  - packages/card_template
+
+dev_dependencies:
+  melos: ^8.6.0
+
+melos:
+  scripts:
+    analyze:
+      description: Run static analysis in every package.
+      run: melos exec -- "dart analyze --fatal-infos ."
+
+    format:
+      description: Check formatting in every package.
+      run: melos exec -- "dart format --set-exit-if-changed ."
+
+    test:
+      description: Run pure-Dart package tests (excludes the Flutter app).
+      run: melos exec --dir-exists=test --ignore="app" -- "dart test"
+
+    test:app:
+      description: Run the Flutter app's widget/unit tests.
+      exec:
+        command: flutter test
+        concurrency: 1
+      packageFilters:
+        scope: "app"

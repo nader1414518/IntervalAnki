@@ -1,0 +1,12 @@
+name: fsrs
+description: Pure-Dart FSRS (Free Spaced Repetition Scheduler) engine, with a legacy SM-2 module for import compatibility.
+version: 0.1.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.13.2
+resolution: workspace
+
+dev_dependencies:
+  test: ^1.25.6
+  very_good_analysis: ^11.0.0

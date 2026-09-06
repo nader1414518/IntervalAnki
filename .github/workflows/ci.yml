@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+
+      - run: echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - run: dart pub global activate melos
+
+      - run: dart pub get
+
+      - run: melos run analyze
+
+      - run: melos run test
+
+      - run: melos run test:app

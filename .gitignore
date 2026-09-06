@@ -1,0 +1,17 @@
+# fvm — .fvmrc pins the Flutter version for the team; .fvm/ is a local,
+# machine-specific SDK symlink/cache and should never be committed.
+.fvm/
+
+# Dart/Flutter workspace tooling
+.dart_tool/
+.packages
+pubspec_overrides.yaml
+build/
+coverage/
+
+# IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store

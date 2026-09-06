@@ -1,0 +1,35 @@
+# This file configures the analyzer, which statically analyzes Dart code to
+# check for errors, warnings, and lints.
+#
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
+# invoked from the command line by running `flutter analyze`.
+
+# The following line activates a strict set of lints (used across the
+# workspace's Dart packages too) designed to encourage good coding practices.
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+
+linter:
+  # very_good_analysis is tuned for published packages; a couple of its rules
+  # don't fit an app's internal-only, relative-import codebase.
+  rules:
+    public_member_api_docs: false
+    always_use_package_imports: false
+    # Opts out of the `new Ctor()` constructor-declaration shorthand; the
+    # conventional `ClassName()` form stays clearer to most Dart readers/IDEs.
+    unnecessary_type_name_in_constructor: false
+
+# Additional information about this file can be found at
+# https://dart.dev/guides/language/analysis-options
