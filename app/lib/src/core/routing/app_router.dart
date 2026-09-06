@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../features/browse/presentation/browse_screen.dart';
 import '../../features/decks/presentation/deck_list_screen.dart';
 import '../../features/decks/presentation/deck_options_screen.dart';
+import '../../features/import/presentation/import_screen.dart';
 import '../../features/note_types/presentation/note_type_editor_screen.dart';
 import '../../features/note_types/presentation/note_type_list_screen.dart';
 import '../../features/notes/presentation/add_note_screen.dart';
@@ -36,6 +37,11 @@ GoRouter appRouter(Ref ref) {
         path: '/browse',
         name: BrowseScreen.routeName,
         builder: (context, state) => const BrowseScreen(),
+      ),
+      GoRoute(
+        path: '/import',
+        name: ImportScreen.routeName,
+        builder: (context, state) => const ImportScreen(),
       ),
       GoRoute(
         path: '/tags',

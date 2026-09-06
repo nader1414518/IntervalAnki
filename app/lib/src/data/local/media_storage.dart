@@ -30,6 +30,18 @@ class MediaStorage {
     return filename;
   }
 
+  /// Writes [bytes] under [filename] as-is (no hash rename/dedup) — used
+  /// only by `.apkg` import, since imported field HTML already references
+  /// media by its original filename and rewriting every reference to a
+  /// hash-based name isn't worth the complexity for this pass.
+  Future<void> storeWithOriginalFilename(
+    String filename,
+    List<int> bytes,
+  ) async {
+    final destination = File(p.join((await _mediaDir()).path, filename));
+    await destination.writeAsBytes(bytes);
+  }
+
   /// The directory stored media files live in, e.g. to resolve an `<img
   /// src="...">` path when rendering a card.
   Future<String> directoryPath() async => (await _mediaDir()).path;

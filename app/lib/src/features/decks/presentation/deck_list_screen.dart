@@ -37,6 +37,7 @@ class DeckListScreen extends ConsumerWidget {
             itemBuilder: (context) => const [
               PopupMenuItem(value: '/note-types', child: Text('Note types')),
               PopupMenuItem(value: '/tags', child: Text('Tags')),
+              PopupMenuItem(value: '/import', child: Text('Import .apkg')),
             ],
           ),
         ],
