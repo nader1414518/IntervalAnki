@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/repositories/settings_repository.dart';
 import '../../features/browse/presentation/browse_screen.dart';
+import '../../features/browse/presentation/trash_screen.dart';
 import '../../features/decks/presentation/deck_list_screen.dart';
 import '../../features/decks/presentation/deck_options_screen.dart';
 import '../../features/import/presentation/import_screen.dart';
@@ -76,6 +77,11 @@ GoRouter appRouter(Ref ref) {
             deckId: deckId == null ? null : int.parse(deckId),
           );
         },
+      ),
+      GoRoute(
+        path: '/trash',
+        name: TrashScreen.routeName,
+        builder: (context, state) => const TrashScreen(),
       ),
       GoRoute(
         path: '/import',

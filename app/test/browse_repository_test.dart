@@ -83,4 +83,50 @@ void main() {
       expect(rows, isEmpty);
     },
   );
+
+  test(
+    'bulkMoveToTrash hides a card from normal search but not trashedOnly',
+    () async {
+      final card = await (db.select(
+        db.cards,
+      )..where((c) => c.deckId.equals(spacedDeckId))).getSingle();
+      await browseRepo.bulkMoveToTrash([card.id]);
+
+      final normal = await browseRepo.search('', deckId: spacedDeckId);
+      expect(normal, isEmpty);
+
+      final trashed = await browseRepo.search('', trashedOnly: true);
+      expect(trashed.map((r) => r.card.id), contains(card.id));
+    },
+  );
+
+  test('bulkRestore brings a trashed card back into normal search', () async {
+    final card = await (db.select(
+      db.cards,
+    )..where((c) => c.deckId.equals(spacedDeckId))).getSingle();
+    await browseRepo.bulkMoveToTrash([card.id]);
+    await browseRepo.bulkRestore([card.id]);
+
+    final normal = await browseRepo.search('', deckId: spacedDeckId);
+    expect(normal.map((r) => r.card.id), contains(card.id));
+
+    final trashed = await browseRepo.search('', trashedOnly: true);
+    expect(trashed, isEmpty);
+  });
+
+  test('emptyTrash permanently deletes every trashed card', () async {
+    final card = await (db.select(
+      db.cards,
+    )..where((c) => c.deckId.equals(spacedDeckId))).getSingle();
+    await browseRepo.bulkMoveToTrash([card.id]);
+    await browseRepo.emptyTrash();
+
+    final trashed = await browseRepo.search('', trashedOnly: true);
+    expect(trashed, isEmpty);
+
+    final stillExists = await (db.select(
+      db.cards,
+    )..where((c) => c.id.equals(card.id))).getSingleOrNull();
+    expect(stillExists, isNull);
+  });
 }

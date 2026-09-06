@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
 /// Interval's Material 3 design tokens.
@@ -25,6 +26,10 @@ abstract final class AppTheme {
   static ThemeData dark({Color? accentColor, bool reducedMotion = false}) =>
       _themeFrom(Brightness.dark, accentColor, reducedMotion);
 
+  /// Corner radius shared by cards, dialogs, buttons, and text fields —
+  /// one knob for a consistent, rounded "premium" look app-wide.
+  static const double _radius = 16;
+
   static ThemeData _themeFrom(
     Brightness brightness,
     Color? accentColor,
@@ -34,22 +39,75 @@ abstract final class AppTheme {
       seedColor: accentColor ?? _seedColor,
       brightness: brightness,
     );
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(_radius),
+    );
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: colorScheme.surface,
-      pageTransitionsTheme: reducedMotion
-          ? const PageTransitionsTheme(
-              builders: {
-                TargetPlatform.android: _InstantPageTransitionsBuilder(),
-                TargetPlatform.iOS: _InstantPageTransitionsBuilder(),
-                TargetPlatform.macOS: _InstantPageTransitionsBuilder(),
-                TargetPlatform.linux: _InstantPageTransitionsBuilder(),
-                TargetPlatform.windows: _InstantPageTransitionsBuilder(),
-                TargetPlatform.fuchsia: _InstantPageTransitionsBuilder(),
-              },
-            )
-          : null,
+      // A denser default than Flutter's — the "compact" look applies
+      // everywhere Material widgets read visual density from, without
+      // having to touch every screen individually.
+      visualDensity: VisualDensity.compact,
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: {
+          for (final platform in TargetPlatform.values)
+            platform: reducedMotion
+                ? const _InstantPageTransitionsBuilder()
+                // A slicker, consistent slide-in on every platform reads
+                // more "premium" than the stock per-platform defaults
+                // (a plain fade on desktop, a zoom+fade on Android).
+                : const CupertinoPageTransitionsBuilder(),
+        },
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: colorScheme.surfaceContainerLow,
+        shape: shape,
+        margin: EdgeInsets.zero,
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_radius + 4),
+        ),
+      ),
+      listTileTheme: ListTileThemeData(
+        visualDensity: VisualDensity.compact,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_radius),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_radius),
+          ),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 }

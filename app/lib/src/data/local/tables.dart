@@ -137,6 +137,11 @@ class Cards extends Table {
   /// When this card was last graded, `null` if it never has been — the
   /// FSRS engine needs this to compute elapsed time for the next review.
   DateTimeColumn get lastReviewedAt => dateTime().nullable()();
+
+  /// When this card was moved to the trash, `null` if it isn't there.
+  /// A soft delete: the row (and its scheduling state) stays put so
+  /// restoring is lossless, but it's excluded from review/browse queries.
+  DateTimeColumn get deletedAt => dateTime().nullable()();
 }
 
 /// An append-only log of graded reviews, one row per answer. Doubles as the

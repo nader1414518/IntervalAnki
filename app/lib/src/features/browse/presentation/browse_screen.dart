@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/local/tables.dart';
 import '../../../data/repositories/browse_repository.dart';
@@ -105,8 +106,19 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     await _search();
   }
 
-  Future<void> _bulkDelete() async {
-    await ref.read(browseRepositoryProvider).bulkDelete(_selected);
+  Future<void> _bulkMoveToTrash() async {
+    final count = _selected.length;
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Move to trash?',
+      message:
+          '${count == 1 ? 'This card' : '$count cards'} will move to the '
+          "trash. You can restore ${count == 1 ? 'it' : 'them'} from Trash "
+          'later, or delete for good from there.',
+      confirmLabel: 'Move to trash',
+    );
+    if (!confirmed) return;
+    await ref.read(browseRepositoryProvider).bulkMoveToTrash(_selected);
     _selected.clear();
     await _search();
   }
@@ -155,6 +167,11 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
             icon: const Icon(Icons.search),
             onPressed: () => unawaited(_search()),
           ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Trash',
+            onPressed: () => unawaited(context.push('/trash')),
+          ),
           PopupMenuButton<BrowseSortKey>(
             icon: const Icon(Icons.sort),
             onSelected: (key) {
@@ -177,64 +194,17 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                if (_scopedDeck case final deck?)
-                  Material(
-                    color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.style_outlined, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text('Showing: ${deck.name}')),
-                        ],
-                      ),
-                    ),
-                  ),
-                if (_selected.isNotEmpty)
-                  Material(
-                    color: Theme.of(context).colorScheme.secondaryContainer,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      child: Row(
-                        children: [
-                          Text('${_selected.length} selected'),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.drive_file_move_outline),
-                            tooltip: 'Move to deck',
-                            onPressed: () => unawaited(_bulkMoveDeck()),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.pause_circle_outline),
-                            tooltip: 'Suspend',
-                            onPressed: () =>
-                                unawaited(_bulkSetQueue(CardQueue.suspended)),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.play_circle_outline),
-                            tooltip: 'Unsuspend (as new)',
-                            onPressed: () =>
-                                unawaited(_bulkSetQueue(CardQueue.newCard)),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            tooltip: 'Delete',
-                            onPressed: () => unawaited(_bulkDelete()),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                _ScopeBanner(deck: _scopedDeck),
+                _SelectionBar(
+                  count: _selected.length,
+                  onMoveDeck: _bulkMoveDeck,
+                  onSuspend: () => _bulkSetQueue(CardQueue.suspended),
+                  onUnsuspend: () => _bulkSetQueue(CardQueue.newCard),
+                  onTrash: _bulkMoveToTrash,
+                ),
                 Expanded(
                   child: _rows.isEmpty
-                      ? const Center(child: Text('No cards found.'))
+                      ? const _EmptyState()
                       : ListView.builder(
                           itemCount: _rows.length,
                           itemBuilder: (context, index) {
@@ -247,26 +217,13 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                                 _selected.add(row.card.id);
                               }
                             });
-                            return ListTile(
-                              leading: Checkbox(
-                                value: selected,
-                                onChanged: (_) => toggleSelected(),
-                              ),
-                              trailing: row.card.flag == 0
+                            return _BrowseRow(
+                              row: row,
+                              selected: selected,
+                              flagColor: row.card.flag == 0
                                   ? null
-                                  : Icon(
-                                      Icons.flag,
-                                      color: _flagColors[row.card.flag - 1],
-                                    ),
-                              title: Text(
-                                row.preview.isEmpty ? '(empty)' : row.preview,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              subtitle: Text(
-                                '${row.deckName} • ${row.noteTypeName} • '
-                                '${row.card.queue.name}',
-                              ),
+                                  : _flagColors[row.card.flag - 1],
+                              onToggleSelected: toggleSelected,
                               // Tapping opens the editor normally, but while
                               // a bulk-action selection is in progress it
                               // extends the selection instead — otherwise a
@@ -281,6 +238,175 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                 ),
               ],
             ),
+    );
+  }
+}
+
+class _ScopeBanner extends StatelessWidget {
+  const _ScopeBanner({required this.deck});
+
+  final Deck? deck;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      alignment: Alignment.topCenter,
+      child: deck == null
+          ? const SizedBox(width: double.infinity)
+          : Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.style_outlined, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Showing: ${deck!.name}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+class _SelectionBar extends StatelessWidget {
+  const _SelectionBar({
+    required this.count,
+    required this.onMoveDeck,
+    required this.onSuspend,
+    required this.onUnsuspend,
+    required this.onTrash,
+  });
+
+  final int count;
+  final Future<void> Function() onMoveDeck;
+  final Future<void> Function() onSuspend;
+  final Future<void> Function() onUnsuspend;
+  final Future<void> Function() onTrash;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      alignment: Alignment.topCenter,
+      child: count == 0
+          ? const SizedBox(width: double.infinity)
+          : Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Text('$count selected'),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.drive_file_move_outline),
+                    tooltip: 'Move to deck',
+                    onPressed: () => unawaited(onMoveDeck()),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.pause_circle_outline),
+                    tooltip: 'Suspend',
+                    onPressed: () => unawaited(onSuspend()),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.play_circle_outline),
+                    tooltip: 'Unsuspend (as new)',
+                    onPressed: () => unawaited(onUnsuspend()),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'Move to trash',
+                    onPressed: () => unawaited(onTrash()),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+class _BrowseRow extends StatelessWidget {
+  const _BrowseRow({
+    required this.row,
+    required this.selected,
+    required this.flagColor,
+    required this.onToggleSelected,
+    required this.onTap,
+  });
+
+  final BrowseCardRow row;
+  final bool selected;
+  final Color? flagColor;
+  final VoidCallback onToggleSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      leading: Checkbox(value: selected, onChanged: (_) => onToggleSelected()),
+      trailing: flagColor == null
+          ? null
+          : Icon(Icons.flag, color: flagColor, size: 18),
+      title: Text(
+        row.preview.isEmpty ? '(empty)' : row.preview,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        '${row.deckName} • ${row.noteTypeName} • ${row.card.queue.name}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      onTap: onTap,
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.inbox_outlined,
+            size: 40,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No cards found.',
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: Theme.of(context).colorScheme.outline),
+          ),
+        ],
+      ),
     );
   }
 }

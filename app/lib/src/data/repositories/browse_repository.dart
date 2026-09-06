@@ -45,8 +45,16 @@ class BrowseRepository {
 
   final AppDatabase _db;
 
-  Future<List<BrowseCardRow>> _allRows() async {
-    final cards = await _db.select(_db.cards).get();
+  /// Cards, joined with their deck/note-type/preview. Excludes trashed
+  /// cards unless [trashedOnly] asks for exactly those instead (the Trash
+  /// screen) — a card is never both.
+  Future<List<BrowseCardRow>> _allRows({bool trashedOnly = false}) async {
+    final cards =
+        await (_db.select(_db.cards)..where(
+              (c) =>
+                  trashedOnly ? c.deletedAt.isNotNull() : c.deletedAt.isNull(),
+            ))
+            .get();
     final decks = {for (final d in await _db.select(_db.decks).get()) d.id: d};
     final notes = {for (final n in await _db.select(_db.notes).get()) n.id: n};
     final noteTypes = {
@@ -84,8 +92,9 @@ class BrowseRepository {
     String query, {
     BrowseSortKey sortKey = BrowseSortKey.due,
     int? deckId,
+    bool trashedOnly = false,
   }) async {
-    final allRows = await _allRows();
+    final allRows = await _allRows(trashedOnly: trashedOnly);
     final rows = deckId == null
         ? allRows
         : allRows.where((row) => row.card.deckId == deckId).toList();
@@ -156,8 +165,25 @@ class BrowseRepository {
     );
   }
 
-  /// Deletes every card in [cardIds] (and any note left with no cards).
-  Future<void> bulkDelete(Iterable<int> cardIds) async {
+  /// Moves every card in [cardIds] to the trash (a soft delete: the row and
+  /// its scheduling state are kept, just excluded from review/browse) —
+  /// recoverable via [bulkRestore], or [bulkPermanentlyDelete]d for good.
+  Future<void> bulkMoveToTrash(Iterable<int> cardIds) async {
+    await (_db.update(_db.cards)..where((c) => c.id.isIn(cardIds))).write(
+      CardsCompanion(deletedAt: Value(DateTime.now())),
+    );
+  }
+
+  /// Takes every card in [cardIds] back out of the trash.
+  Future<void> bulkRestore(Iterable<int> cardIds) async {
+    await (_db.update(_db.cards)..where((c) => c.id.isIn(cardIds))).write(
+      const CardsCompanion(deletedAt: Value(null)),
+    );
+  }
+
+  /// Permanently deletes every card in [cardIds] (and any note left with no
+  /// cards at all, trashed or not) — irreversible, unlike [bulkMoveToTrash].
+  Future<void> bulkPermanentlyDelete(Iterable<int> cardIds) async {
     final ids = cardIds.toList();
     final noteIds =
         await (_db.selectOnly(_db.cards)
@@ -180,6 +206,17 @@ class BrowseRepository {
         }
       }
     });
+  }
+
+  /// Permanently deletes every card currently in the trash.
+  Future<void> emptyTrash() async {
+    final ids =
+        await (_db.selectOnly(_db.cards)
+              ..addColumns([_db.cards.id])
+              ..where(_db.cards.deletedAt.isNotNull()))
+            .map((row) => row.read(_db.cards.id)!)
+            .get();
+    await bulkPermanentlyDelete(ids);
   }
 }
 

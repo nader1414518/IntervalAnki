@@ -63,7 +63,10 @@ class DeckRepository {
   }
 
   /// Deletes the deck [id]. Throws [DeckNotEmptyException] if it still has
-  /// cards — bulk "move cards then delete" is a browse/search (M6) action.
+  /// non-trashed cards — bulk "move cards then delete" is a browse/search
+  /// (M6) action. Trashed cards don't count: they're already excluded from
+  /// review/browse, and permanently deleting them cascades independently
+  /// via the trash screen.
   Future<void> delete(int id) async {
     final deck = await (_db.select(
       _db.decks,
@@ -71,13 +74,21 @@ class DeckRepository {
     final cardCount =
         await (_db.selectOnly(_db.cards)
               ..addColumns([_db.cards.id.count()])
-              ..where(_db.cards.deckId.equals(id)))
+              ..where(
+                _db.cards.deckId.equals(id) & _db.cards.deletedAt.isNull(),
+              ))
             .map((row) => row.read(_db.cards.id.count()) ?? 0)
             .getSingle();
     if (cardCount > 0) {
       throw DeckNotEmptyException(deck.name);
     }
-    await (_db.delete(_db.decks)..where((d) => d.id.equals(id))).go();
+    await _db.transaction(() async {
+      // Purge any trashed cards still pointing at this deck — restoring
+      // them into a deck that no longer exists wouldn't be meaningful, and
+      // otherwise they'd sit in the trash forever with a blank deck name.
+      await (_db.delete(_db.cards)..where((c) => c.deckId.equals(id))).go();
+      await (_db.delete(_db.decks)..where((d) => d.id.equals(id))).go();
+    });
   }
 }
 

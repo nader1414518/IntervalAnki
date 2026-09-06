@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/repositories/deck_repository.dart';
 import 'deck_name_sheet.dart';
@@ -37,6 +38,7 @@ class DeckListScreen extends ConsumerWidget {
             itemBuilder: (context) => const [
               PopupMenuItem(value: '/note-types', child: Text('Note types')),
               PopupMenuItem(value: '/tags', child: Text('Tags')),
+              PopupMenuItem(value: '/trash', child: Text('Trash')),
               PopupMenuItem(value: '/import', child: Text('Import .apkg')),
               PopupMenuItem(value: '/settings', child: Text('Settings')),
             ],
@@ -45,10 +47,14 @@ class DeckListScreen extends ConsumerWidget {
       ),
       body: decks.when(
         data: (decks) => decks.isEmpty
-            ? const Center(child: Text('Your decks will show up here.'))
+            ? const _EmptyDeckList()
             : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 88),
                 itemCount: decks.length,
-                itemBuilder: (context, index) => _DeckTile(deck: decks[index]),
+                itemBuilder: (context, index) => _AnimatedEntry(
+                  index: index,
+                  child: _DeckTile(deck: decks[index]),
+                ),
               ),
         error: (error, stackTrace) => Center(child: Text('Error: $error')),
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -78,20 +84,67 @@ class _DeckTile extends ConsumerWidget {
     final segments = deck.name.split('::');
     final depth = segments.length - 1;
     final label = segments.last;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return ListTile(
-      contentPadding: EdgeInsets.only(left: 16.0 + depth * 20, right: 8),
-      leading: const Icon(Icons.style_outlined),
-      title: Text(label),
-      onTap: () => unawaited(context.push('/review/${deck.id}')),
-      trailing: PopupMenuButton<_DeckAction>(
-        onSelected: (action) => _handleAction(context, ref, action),
-        itemBuilder: (context) => const [
-          PopupMenuItem(value: _DeckAction.browse, child: Text('Browse cards')),
-          PopupMenuItem(value: _DeckAction.rename, child: Text('Rename')),
-          PopupMenuItem(value: _DeckAction.options, child: Text('Options')),
-          PopupMenuItem(value: _DeckAction.delete, child: Text('Delete')),
-        ],
+    return Padding(
+      padding: EdgeInsets.only(left: depth * 16.0, bottom: 8),
+      child: Material(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => unawaited(context.push('/review/${deck.id}')),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.style_outlined,
+                    size: 20,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.titleMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                PopupMenuButton<_DeckAction>(
+                  onSelected: (action) => _handleAction(context, ref, action),
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: _DeckAction.browse,
+                      child: Text('Browse cards'),
+                    ),
+                    PopupMenuItem(
+                      value: _DeckAction.rename,
+                      child: Text('Rename'),
+                    ),
+                    PopupMenuItem(
+                      value: _DeckAction.options,
+                      child: Text('Options'),
+                    ),
+                    PopupMenuItem(
+                      value: _DeckAction.delete,
+                      child: Text('Delete'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -122,24 +175,15 @@ class _DeckTile extends ConsumerWidget {
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete deck?'),
-        content: Text('Delete "${deck.name}"? This can\'t be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Delete deck?',
+      message: 'Delete "${deck.name}"? This can\'t be undone.',
+      confirmLabel: 'Delete',
+      isDestructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
+    if (!context.mounted) return;
 
     try {
       await ref.read(deckRepositoryProvider).delete(deck.id);
@@ -153,3 +197,98 @@ class _DeckTile extends ConsumerWidget {
 }
 
 enum _DeckAction { browse, rename, options, delete }
+
+class _EmptyDeckList extends StatelessWidget {
+  const _EmptyDeckList();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.style_outlined,
+            size: 40,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Your decks will show up here.',
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: Theme.of(context).colorScheme.outline),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Fades and slides each list item in on first build, staggered a little
+/// by [index] — a small bit of polish for what's otherwise an instant
+/// population of the deck list.
+class _AnimatedEntry extends StatefulWidget {
+  const _AnimatedEntry({required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  @override
+  State<_AnimatedEntry> createState() => _AnimatedEntryState();
+}
+
+class _AnimatedEntryState extends State<_AnimatedEntry>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+    final curved = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _fade = curved;
+    _slide = Tween(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(curved);
+  }
+
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    // Respect the reduce-motion setting (MediaQuery.disableAnimations is
+    // wired to it app-wide, see IntervalApp) by skipping straight to the
+    // end state instead of running the stagger.
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+      _controller.value = 1;
+      return;
+    }
+    final delay = Duration(milliseconds: 25 * widget.index.clamp(0, 8));
+    Future.delayed(delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(position: _slide, child: widget.child),
+    );
+  }
+}

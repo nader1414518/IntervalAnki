@@ -2400,6 +2400,17 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, StudyCard> {
         type: DriftSqlType.dateTime,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2415,6 +2426,7 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, StudyCard> {
     flag,
     createdAt,
     lastReviewedAt,
+    deletedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2511,6 +2523,12 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, StudyCard> {
         ),
       );
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -2574,6 +2592,10 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, StudyCard> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_reviewed_at'],
       ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
     );
   }
 
@@ -2608,6 +2630,11 @@ class StudyCard extends DataClass implements Insertable<StudyCard> {
   /// When this card was last graded, `null` if it never has been — the
   /// FSRS engine needs this to compute elapsed time for the next review.
   final DateTime? lastReviewedAt;
+
+  /// When this card was moved to the trash, `null` if it isn't there.
+  /// A soft delete: the row (and its scheduling state) stays put so
+  /// restoring is lossless, but it's excluded from review/browse queries.
+  final DateTime? deletedAt;
   const StudyCard({
     required this.id,
     required this.noteId,
@@ -2622,6 +2649,7 @@ class StudyCard extends DataClass implements Insertable<StudyCard> {
     required this.flag,
     required this.createdAt,
     this.lastReviewedAt,
+    this.deletedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2647,6 +2675,9 @@ class StudyCard extends DataClass implements Insertable<StudyCard> {
     if (!nullToAbsent || lastReviewedAt != null) {
       map['last_reviewed_at'] = Variable<DateTime>(lastReviewedAt);
     }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     return map;
   }
 
@@ -2671,6 +2702,9 @@ class StudyCard extends DataClass implements Insertable<StudyCard> {
       lastReviewedAt: lastReviewedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastReviewedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
     );
   }
 
@@ -2695,6 +2729,7 @@ class StudyCard extends DataClass implements Insertable<StudyCard> {
       flag: serializer.fromJson<int>(json['flag']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       lastReviewedAt: serializer.fromJson<DateTime?>(json['lastReviewedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
   }
   @override
@@ -2716,6 +2751,7 @@ class StudyCard extends DataClass implements Insertable<StudyCard> {
       'flag': serializer.toJson<int>(flag),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'lastReviewedAt': serializer.toJson<DateTime?>(lastReviewedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
   }
 
@@ -2733,6 +2769,7 @@ class StudyCard extends DataClass implements Insertable<StudyCard> {
     int? flag,
     DateTime? createdAt,
     Value<DateTime?> lastReviewedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
   }) => StudyCard(
     id: id ?? this.id,
     noteId: noteId ?? this.noteId,
@@ -2749,6 +2786,7 @@ class StudyCard extends DataClass implements Insertable<StudyCard> {
     lastReviewedAt: lastReviewedAt.present
         ? lastReviewedAt.value
         : this.lastReviewedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
   );
   StudyCard copyWithCompanion(CardsCompanion data) {
     return StudyCard(
@@ -2771,6 +2809,7 @@ class StudyCard extends DataClass implements Insertable<StudyCard> {
       lastReviewedAt: data.lastReviewedAt.present
           ? data.lastReviewedAt.value
           : this.lastReviewedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
 
@@ -2789,7 +2828,8 @@ class StudyCard extends DataClass implements Insertable<StudyCard> {
           ..write('reps: $reps, ')
           ..write('flag: $flag, ')
           ..write('createdAt: $createdAt, ')
-          ..write('lastReviewedAt: $lastReviewedAt')
+          ..write('lastReviewedAt: $lastReviewedAt, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
@@ -2809,6 +2849,7 @@ class StudyCard extends DataClass implements Insertable<StudyCard> {
     flag,
     createdAt,
     lastReviewedAt,
+    deletedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -2826,7 +2867,8 @@ class StudyCard extends DataClass implements Insertable<StudyCard> {
           other.reps == this.reps &&
           other.flag == this.flag &&
           other.createdAt == this.createdAt &&
-          other.lastReviewedAt == this.lastReviewedAt);
+          other.lastReviewedAt == this.lastReviewedAt &&
+          other.deletedAt == this.deletedAt);
 }
 
 class CardsCompanion extends UpdateCompanion<StudyCard> {
@@ -2843,6 +2885,7 @@ class CardsCompanion extends UpdateCompanion<StudyCard> {
   final Value<int> flag;
   final Value<DateTime> createdAt;
   final Value<DateTime?> lastReviewedAt;
+  final Value<DateTime?> deletedAt;
   const CardsCompanion({
     this.id = const Value.absent(),
     this.noteId = const Value.absent(),
@@ -2857,6 +2900,7 @@ class CardsCompanion extends UpdateCompanion<StudyCard> {
     this.flag = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.lastReviewedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
   });
   CardsCompanion.insert({
     this.id = const Value.absent(),
@@ -2872,6 +2916,7 @@ class CardsCompanion extends UpdateCompanion<StudyCard> {
     this.flag = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.lastReviewedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
   }) : noteId = Value(noteId),
        deckId = Value(deckId),
        templateOrd = Value(templateOrd),
@@ -2891,6 +2936,7 @@ class CardsCompanion extends UpdateCompanion<StudyCard> {
     Expression<int>? flag,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? lastReviewedAt,
+    Expression<DateTime>? deletedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2906,6 +2952,7 @@ class CardsCompanion extends UpdateCompanion<StudyCard> {
       if (flag != null) 'flag': flag,
       if (createdAt != null) 'created_at': createdAt,
       if (lastReviewedAt != null) 'last_reviewed_at': lastReviewedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
     });
   }
 
@@ -2923,6 +2970,7 @@ class CardsCompanion extends UpdateCompanion<StudyCard> {
     Value<int>? flag,
     Value<DateTime>? createdAt,
     Value<DateTime?>? lastReviewedAt,
+    Value<DateTime?>? deletedAt,
   }) {
     return CardsCompanion(
       id: id ?? this.id,
@@ -2938,6 +2986,7 @@ class CardsCompanion extends UpdateCompanion<StudyCard> {
       flag: flag ?? this.flag,
       createdAt: createdAt ?? this.createdAt,
       lastReviewedAt: lastReviewedAt ?? this.lastReviewedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 
@@ -2985,6 +3034,9 @@ class CardsCompanion extends UpdateCompanion<StudyCard> {
     if (lastReviewedAt.present) {
       map['last_reviewed_at'] = Variable<DateTime>(lastReviewedAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     return map;
   }
 
@@ -3003,7 +3055,8 @@ class CardsCompanion extends UpdateCompanion<StudyCard> {
           ..write('reps: $reps, ')
           ..write('flag: $flag, ')
           ..write('createdAt: $createdAt, ')
-          ..write('lastReviewedAt: $lastReviewedAt')
+          ..write('lastReviewedAt: $lastReviewedAt, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
@@ -6627,6 +6680,7 @@ typedef $$CardsTableCreateCompanionBuilder = CardsCompanion Function({
   Value<int> flag,
   Value<DateTime> createdAt,
   Value<DateTime?> lastReviewedAt,
+  Value<DateTime?> deletedAt,
 });
 typedef $$CardsTableUpdateCompanionBuilder = CardsCompanion Function({
   Value<int> id,
@@ -6642,6 +6696,7 @@ typedef $$CardsTableUpdateCompanionBuilder = CardsCompanion Function({
   Value<int> flag,
   Value<DateTime> createdAt,
   Value<DateTime?> lastReviewedAt,
+  Value<DateTime?> deletedAt,
 });
 
 final class $$CardsTableReferences
@@ -6762,6 +6817,11 @@ class $$CardsTableFilterComposer extends Composer<_$AppDatabase, $CardsTable> {
 
   ColumnFilters<DateTime> get lastReviewedAt => $composableBuilder(
     column: $table.lastReviewedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6901,6 +6961,11 @@ class $$CardsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$NotesTableOrderingComposer get noteId {
     final $$NotesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -6995,6 +7060,9 @@ class $$CardsTableAnnotationComposer
     column: $table.lastReviewedAt,
     builder: (column) => column,
   );
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   $$NotesTableAnnotationComposer get noteId {
     final $$NotesTableAnnotationComposer composer = $composerBuilder(
@@ -7109,6 +7177,7 @@ class $$CardsTableTableManager
                 Value<int> flag = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> lastReviewedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
               }) => CardsCompanion(
                 id: id,
                 noteId: noteId,
@@ -7123,6 +7192,7 @@ class $$CardsTableTableManager
                 flag: flag,
                 createdAt: createdAt,
                 lastReviewedAt: lastReviewedAt,
+                deletedAt: deletedAt,
               ),
           createCompanionCallback:
               ({
@@ -7139,6 +7209,7 @@ class $$CardsTableTableManager
                 Value<int> flag = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> lastReviewedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
               }) => CardsCompanion.insert(
                 id: id,
                 noteId: noteId,
@@ -7153,6 +7224,7 @@ class $$CardsTableTableManager
                 flag: flag,
                 createdAt: createdAt,
                 lastReviewedAt: lastReviewedAt,
+                deletedAt: deletedAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(

@@ -56,6 +56,7 @@ class CardRepository {
           ..where(
             (c) =>
                 c.deckId.equals(deckId) &
+                c.deletedAt.isNull() &
                 (c.queue.equalsValue(CardQueue.newCard) |
                     ((c.queue.equalsValue(CardQueue.review) |
                             c.queue.equalsValue(CardQueue.relearning)) &
