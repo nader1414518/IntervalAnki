@@ -17,12 +17,17 @@ import '../../../data/repositories/note_type_repository.dart';
 /// current values — one unified flow for both, rather than Anki's separate
 /// modal windows (PRD §5.4).
 class AddNoteScreen extends ConsumerStatefulWidget {
-  const AddNoteScreen({this.noteId, super.key});
+  const AddNoteScreen({this.noteId, this.deckId, super.key});
 
   static const routeName = 'add-note';
 
   /// The note to edit, or `null` to add a new one.
   final int? noteId;
+
+  /// The deck to preselect in add mode (e.g. opened from that deck's
+  /// browse screen). Ignored when [noteId] is set — editing keeps the
+  /// note's own deck as the starting selection instead.
+  final int? deckId;
 
   @override
   ConsumerState<AddNoteScreen> createState() => _AddNoteScreenState();
@@ -114,8 +119,16 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
   void _selectDefaultsIfNeeded(List<Deck> decks, List<NoteType> noteTypes) {
     if (_isEditing) return;
     if (_deck == null && decks.isNotEmpty) {
+      Deck? preselected;
+      for (final deck in decks) {
+        if (deck.id == widget.deckId) {
+          preselected = deck;
+          break;
+        }
+      }
+      final initialDeck = preselected ?? decks.first;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _deck == null) setState(() => _deck = decks.first);
+        if (mounted && _deck == null) setState(() => _deck = initialDeck);
       });
     }
     if (_noteType == null && !_selectingNoteType && noteTypes.isNotEmpty) {

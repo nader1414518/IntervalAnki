@@ -54,8 +54,10 @@ GoRouter appRouter(Ref ref) {
         name: AddNoteScreen.routeName,
         builder: (context, state) {
           final noteId = state.uri.queryParameters['noteId'];
+          final deckId = state.uri.queryParameters['deckId'];
           return AddNoteScreen(
             noteId: noteId == null ? null : int.parse(noteId),
+            deckId: deckId == null ? null : int.parse(deckId),
           );
         },
       ),
@@ -68,7 +70,12 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '/browse',
         name: BrowseScreen.routeName,
-        builder: (context, state) => const BrowseScreen(),
+        builder: (context, state) {
+          final deckId = state.uri.queryParameters['deckId'];
+          return BrowseScreen(
+            deckId: deckId == null ? null : int.parse(deckId),
+          );
+        },
       ),
       GoRoute(
         path: '/import',

@@ -4,16 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../data/local/app_database.dart';
 import '../../../data/local/tables.dart';
 import '../../../data/repositories/browse_repository.dart';
 import '../../../data/repositories/deck_repository.dart';
 
 /// The card browser (PRD §4.6): search with Anki-style syntax, sort, and
-/// bulk actions over the results.
+/// bulk actions over the results. Passing [deckId] scopes it to one deck
+/// (e.g. opened from that deck's menu) — edit/remove/add all still work
+/// the same, just restricted to that deck's cards.
 class BrowseScreen extends ConsumerStatefulWidget {
-  const BrowseScreen({super.key});
+  const BrowseScreen({this.deckId, super.key});
 
   static const routeName = 'browse';
+
+  final int? deckId;
 
   @override
   ConsumerState<BrowseScreen> createState() => _BrowseScreenState();
@@ -25,6 +30,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   List<BrowseCardRow> _rows = [];
   final Set<int> _selected = {};
   bool _loading = true;
+  Deck? _scopedDeck;
 
   static const List<Color> _flagColors = [
     Colors.red,
@@ -39,6 +45,13 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.deckId case final deckId?) {
+      unawaited(
+        ref.read(deckRepositoryProvider).get(deckId).then((deck) {
+          if (mounted) setState(() => _scopedDeck = deck);
+        }),
+      );
+    }
     unawaited(_search());
   }
 
@@ -52,7 +65,11 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     setState(() => _loading = true);
     final rows = await ref
         .read(browseRepositoryProvider)
-        .search(_queryController.text, sortKey: _sortKey);
+        .search(
+          _queryController.text,
+          sortKey: _sortKey,
+          deckId: widget.deckId,
+        );
     if (!mounted) return;
     setState(() {
       _rows = rows;
@@ -69,6 +86,17 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
       '/add-note?noteId=${row.card.noteId}',
     );
     if (changed == true) await _search();
+  }
+
+  /// Opens the add-cards screen, preselecting the scoped deck if any, and
+  /// refreshes afterward — batch add mode may add any number of cards
+  /// without ever popping a "changed" result, so this always refreshes
+  /// rather than only on a signal.
+  Future<void> _openAddCard() async {
+    await context.push<bool>(
+      widget.deckId == null ? '/add-note' : '/add-note?deckId=${widget.deckId}',
+    );
+    await _search();
   }
 
   Future<void> _bulkSetQueue(CardQueue queue) async {
@@ -108,6 +136,11 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => unawaited(_openAddCard()),
+        tooltip: 'Add cards',
+        child: const Icon(Icons.add),
+      ),
       appBar: AppBar(
         title: TextField(
           controller: _queryController,
@@ -144,6 +177,23 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
+                if (_scopedDeck case final deck?)
+                  Material(
+                    color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.style_outlined, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text('Showing: ${deck.name}')),
+                        ],
+                      ),
+                    ),
+                  ),
                 if (_selected.isNotEmpty)
                   Material(
                     color: Theme.of(context).colorScheme.secondaryContainer,

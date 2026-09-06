@@ -87,6 +87,7 @@ class _DeckTile extends ConsumerWidget {
       trailing: PopupMenuButton<_DeckAction>(
         onSelected: (action) => _handleAction(context, ref, action),
         itemBuilder: (context) => const [
+          PopupMenuItem(value: _DeckAction.browse, child: Text('Browse cards')),
           PopupMenuItem(value: _DeckAction.rename, child: Text('Rename')),
           PopupMenuItem(value: _DeckAction.options, child: Text('Options')),
           PopupMenuItem(value: _DeckAction.delete, child: Text('Delete')),
@@ -101,6 +102,8 @@ class _DeckTile extends ConsumerWidget {
     _DeckAction action,
   ) async {
     switch (action) {
+      case _DeckAction.browse:
+        unawaited(context.push('/browse?deckId=${deck.id}'));
       case _DeckAction.rename:
         final newName = await showDeckNameSheet(
           context,
@@ -149,4 +152,4 @@ class _DeckTile extends ConsumerWidget {
   }
 }
 
-enum _DeckAction { rename, options, delete }
+enum _DeckAction { browse, rename, options, delete }

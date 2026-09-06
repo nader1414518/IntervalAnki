@@ -75,11 +75,20 @@ class BrowseRepository {
   /// Returns cards matching [query] (Anki-style `deck:`/`tag:`/`is:`/`flag:`
   /// terms, AND-combined, `-` negates a term; anything else matches
   /// front-field text or tags), sorted by [sortKey].
+  ///
+  /// [deckId] restricts to one deck by id rather than name — used when
+  /// browsing is opened from a specific deck, since the `deck:` text term
+  /// splits on whitespace and would break on a deck name containing a space
+  /// (e.g. "My First Deck").
   Future<List<BrowseCardRow>> search(
     String query, {
     BrowseSortKey sortKey = BrowseSortKey.due,
+    int? deckId,
   }) async {
-    final rows = await _allRows();
+    final allRows = await _allRows();
+    final rows = deckId == null
+        ? allRows
+        : allRows.where((row) => row.card.deckId == deckId).toList();
     final terms = query.trim().split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
     final matching =
         rows.where((row) {

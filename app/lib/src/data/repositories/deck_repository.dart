@@ -31,6 +31,11 @@ class DeckRepository {
     )..orderBy([(d) => OrderingTerm(expression: d.name)])).watch();
   }
 
+  /// One-shot fetch of deck [id], e.g. to resolve a route parameter.
+  Future<Deck> get(int id) {
+    return (_db.select(_db.decks)..where((d) => d.id.equals(id))).getSingle();
+  }
+
   /// The id of the shared "Default" deck-options preset every profile is
   /// seeded with.
   Future<int> defaultDeckOptionsId() async {
