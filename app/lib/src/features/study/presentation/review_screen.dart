@@ -9,6 +9,7 @@ import '../../../core/widgets/card_web_view.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/local/tables.dart' show CardQueue;
 import '../../../data/repositories/card_repository.dart';
+import '../../../data/repositories/settings_repository.dart';
 
 /// The core study loop (PRD §4.5): reveal, then grade with either the
 /// answer buttons or a swipe (left = Again, right = Good, up = Easy —
@@ -126,6 +127,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     }
     final data = _renderData!;
     final options = ref.read(cardRepositoryProvider).previewSchedule(card);
+    final settings = ref.watch(settingsProvider).value;
 
     return Column(
       children: [
@@ -139,6 +141,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           child: CardWebView(
             html: _showingAnswer ? data.back : data.front,
             css: data.css,
+            fontScale: settings?.cardFontScale ?? 1,
+            fontFamily: settings?.cardFontFamily,
             onTap: _showingAnswer
                 ? null
                 : () => setState(() => _showingAnswer = true),
@@ -165,6 +169,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         if (_showingAnswer)
           _AnswerButtons(
             options: options,
+            buttonCount: settings?.answerButtonCount ?? 4,
             onGrade: (rating) => unawaited(_grade(card, rating)),
           )
         else
@@ -243,10 +248,18 @@ class _CardToolbar extends StatelessWidget {
 }
 
 class _AnswerButtons extends StatelessWidget {
-  const _AnswerButtons({required this.options, required this.onGrade});
+  const _AnswerButtons({
+    required this.options,
+    required this.onGrade,
+    this.buttonCount = 4,
+  });
 
   final fsrs.SchedulingOptions options;
   final ValueChanged<fsrs.Rating> onGrade;
+
+  /// How many grading buttons to show, `2`-`4` (PRD §4.11): 2 keeps Again
+  /// and Good, 3 adds Easy, 4 (the default) adds Hard too.
+  final int buttonCount;
 
   @override
   Widget build(BuildContext context) {
@@ -255,9 +268,11 @@ class _AnswerButtons extends StatelessWidget {
       child: Row(
         children: [
           _gradeButton('Again', options.again, fsrs.Rating.again, Colors.red),
-          _gradeButton('Hard', options.hard, fsrs.Rating.hard, Colors.orange),
+          if (buttonCount >= 4)
+            _gradeButton('Hard', options.hard, fsrs.Rating.hard, Colors.orange),
           _gradeButton('Good', options.good, fsrs.Rating.good, Colors.green),
-          _gradeButton('Easy', options.easy, fsrs.Rating.easy, Colors.blue),
+          if (buttonCount >= 3)
+            _gradeButton('Easy', options.easy, fsrs.Rating.easy, Colors.blue),
         ],
       ),
     );

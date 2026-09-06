@@ -3744,6 +3744,611 @@ class MediaCompanion extends UpdateCompanion<MediaFile> {
   }
 }
 
+class $SettingsTable extends Settings
+    with TableInfo<$SettingsTable, AppSettings> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<AppThemeMode, String> themeMode =
+      GeneratedColumn<String>(
+        'theme_mode',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: Constant(AppThemeMode.system.name),
+      ).withConverter<AppThemeMode>($SettingsTable.$converterthemeMode);
+  static const VerificationMeta _accentColorMeta = const VerificationMeta(
+    'accentColor',
+  );
+  @override
+  late final GeneratedColumn<int> accentColor = GeneratedColumn<int>(
+    'accent_color',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cardFontScaleMeta = const VerificationMeta(
+    'cardFontScale',
+  );
+  @override
+  late final GeneratedColumn<double> cardFontScale = GeneratedColumn<double>(
+    'card_font_scale',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _cardFontFamilyMeta = const VerificationMeta(
+    'cardFontFamily',
+  );
+  @override
+  late final GeneratedColumn<String> cardFontFamily = GeneratedColumn<String>(
+    'card_font_family',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _answerButtonCountMeta = const VerificationMeta(
+    'answerButtonCount',
+  );
+  @override
+  late final GeneratedColumn<int> answerButtonCount = GeneratedColumn<int>(
+    'answer_button_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(4),
+  );
+  static const VerificationMeta _reducedMotionMeta = const VerificationMeta(
+    'reducedMotion',
+  );
+  @override
+  late final GeneratedColumn<bool> reducedMotion = GeneratedColumn<bool>(
+    'reduced_motion',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("reduced_motion" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _autoBackupEnabledMeta = const VerificationMeta(
+    'autoBackupEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> autoBackupEnabled = GeneratedColumn<bool>(
+    'auto_backup_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_backup_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _onboardingCompletedMeta =
+      const VerificationMeta('onboardingCompleted');
+  @override
+  late final GeneratedColumn<bool> onboardingCompleted = GeneratedColumn<bool>(
+    'onboarding_completed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("onboarding_completed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    themeMode,
+    accentColor,
+    cardFontScale,
+    cardFontFamily,
+    answerButtonCount,
+    reducedMotion,
+    autoBackupEnabled,
+    onboardingCompleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AppSettings> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('accent_color')) {
+      context.handle(
+        _accentColorMeta,
+        accentColor.isAcceptableOrUnknown(
+          data['accent_color']!,
+          _accentColorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('card_font_scale')) {
+      context.handle(
+        _cardFontScaleMeta,
+        cardFontScale.isAcceptableOrUnknown(
+          data['card_font_scale']!,
+          _cardFontScaleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('card_font_family')) {
+      context.handle(
+        _cardFontFamilyMeta,
+        cardFontFamily.isAcceptableOrUnknown(
+          data['card_font_family']!,
+          _cardFontFamilyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('answer_button_count')) {
+      context.handle(
+        _answerButtonCountMeta,
+        answerButtonCount.isAcceptableOrUnknown(
+          data['answer_button_count']!,
+          _answerButtonCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reduced_motion')) {
+      context.handle(
+        _reducedMotionMeta,
+        reducedMotion.isAcceptableOrUnknown(
+          data['reduced_motion']!,
+          _reducedMotionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('auto_backup_enabled')) {
+      context.handle(
+        _autoBackupEnabledMeta,
+        autoBackupEnabled.isAcceptableOrUnknown(
+          data['auto_backup_enabled']!,
+          _autoBackupEnabledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('onboarding_completed')) {
+      context.handle(
+        _onboardingCompletedMeta,
+        onboardingCompleted.isAcceptableOrUnknown(
+          data['onboarding_completed']!,
+          _onboardingCompletedMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AppSettings map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AppSettings(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      themeMode: $SettingsTable.$converterthemeMode.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}theme_mode'],
+        )!,
+      ),
+      accentColor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}accent_color'],
+      ),
+      cardFontScale: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}card_font_scale'],
+      )!,
+      cardFontFamily: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}card_font_family'],
+      ),
+      answerButtonCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}answer_button_count'],
+      )!,
+      reducedMotion: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}reduced_motion'],
+      )!,
+      autoBackupEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_backup_enabled'],
+      )!,
+      onboardingCompleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}onboarding_completed'],
+      )!,
+    );
+  }
+
+  @override
+  $SettingsTable createAlias(String alias) {
+    return $SettingsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<AppThemeMode, String, String> $converterthemeMode =
+      const EnumNameConverter<AppThemeMode>(AppThemeMode.values);
+}
+
+class AppSettings extends DataClass implements Insertable<AppSettings> {
+  final int id;
+  final AppThemeMode themeMode;
+
+  /// ARGB value of a user-chosen accent color; `null` uses the app default.
+  final int? accentColor;
+
+  /// Multiplier applied to card templates' base font size, e.g. `1.25`.
+  final double cardFontScale;
+
+  /// A CSS `font-family` override for card rendering; `null` uses each
+  /// template's own CSS.
+  final String? cardFontFamily;
+
+  /// How many grading buttons the review screen shows, `2`-`4`.
+  final int answerButtonCount;
+  final bool reducedMotion;
+  final bool autoBackupEnabled;
+  final bool onboardingCompleted;
+  const AppSettings({
+    required this.id,
+    required this.themeMode,
+    this.accentColor,
+    required this.cardFontScale,
+    this.cardFontFamily,
+    required this.answerButtonCount,
+    required this.reducedMotion,
+    required this.autoBackupEnabled,
+    required this.onboardingCompleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    {
+      map['theme_mode'] = Variable<String>(
+        $SettingsTable.$converterthemeMode.toSql(themeMode),
+      );
+    }
+    if (!nullToAbsent || accentColor != null) {
+      map['accent_color'] = Variable<int>(accentColor);
+    }
+    map['card_font_scale'] = Variable<double>(cardFontScale);
+    if (!nullToAbsent || cardFontFamily != null) {
+      map['card_font_family'] = Variable<String>(cardFontFamily);
+    }
+    map['answer_button_count'] = Variable<int>(answerButtonCount);
+    map['reduced_motion'] = Variable<bool>(reducedMotion);
+    map['auto_backup_enabled'] = Variable<bool>(autoBackupEnabled);
+    map['onboarding_completed'] = Variable<bool>(onboardingCompleted);
+    return map;
+  }
+
+  SettingsCompanion toCompanion(bool nullToAbsent) {
+    return SettingsCompanion(
+      id: Value(id),
+      themeMode: Value(themeMode),
+      accentColor: accentColor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accentColor),
+      cardFontScale: Value(cardFontScale),
+      cardFontFamily: cardFontFamily == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cardFontFamily),
+      answerButtonCount: Value(answerButtonCount),
+      reducedMotion: Value(reducedMotion),
+      autoBackupEnabled: Value(autoBackupEnabled),
+      onboardingCompleted: Value(onboardingCompleted),
+    );
+  }
+
+  factory AppSettings.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AppSettings(
+      id: serializer.fromJson<int>(json['id']),
+      themeMode: $SettingsTable.$converterthemeMode.fromJson(
+        serializer.fromJson<String>(json['themeMode']),
+      ),
+      accentColor: serializer.fromJson<int?>(json['accentColor']),
+      cardFontScale: serializer.fromJson<double>(json['cardFontScale']),
+      cardFontFamily: serializer.fromJson<String?>(json['cardFontFamily']),
+      answerButtonCount: serializer.fromJson<int>(json['answerButtonCount']),
+      reducedMotion: serializer.fromJson<bool>(json['reducedMotion']),
+      autoBackupEnabled: serializer.fromJson<bool>(json['autoBackupEnabled']),
+      onboardingCompleted: serializer.fromJson<bool>(
+        json['onboardingCompleted'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'themeMode': serializer.toJson<String>(
+        $SettingsTable.$converterthemeMode.toJson(themeMode),
+      ),
+      'accentColor': serializer.toJson<int?>(accentColor),
+      'cardFontScale': serializer.toJson<double>(cardFontScale),
+      'cardFontFamily': serializer.toJson<String?>(cardFontFamily),
+      'answerButtonCount': serializer.toJson<int>(answerButtonCount),
+      'reducedMotion': serializer.toJson<bool>(reducedMotion),
+      'autoBackupEnabled': serializer.toJson<bool>(autoBackupEnabled),
+      'onboardingCompleted': serializer.toJson<bool>(onboardingCompleted),
+    };
+  }
+
+  AppSettings copyWith({
+    int? id,
+    AppThemeMode? themeMode,
+    Value<int?> accentColor = const Value.absent(),
+    double? cardFontScale,
+    Value<String?> cardFontFamily = const Value.absent(),
+    int? answerButtonCount,
+    bool? reducedMotion,
+    bool? autoBackupEnabled,
+    bool? onboardingCompleted,
+  }) => AppSettings(
+    id: id ?? this.id,
+    themeMode: themeMode ?? this.themeMode,
+    accentColor: accentColor.present ? accentColor.value : this.accentColor,
+    cardFontScale: cardFontScale ?? this.cardFontScale,
+    cardFontFamily: cardFontFamily.present
+        ? cardFontFamily.value
+        : this.cardFontFamily,
+    answerButtonCount: answerButtonCount ?? this.answerButtonCount,
+    reducedMotion: reducedMotion ?? this.reducedMotion,
+    autoBackupEnabled: autoBackupEnabled ?? this.autoBackupEnabled,
+    onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+  );
+  AppSettings copyWithCompanion(SettingsCompanion data) {
+    return AppSettings(
+      id: data.id.present ? data.id.value : this.id,
+      themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
+      accentColor: data.accentColor.present
+          ? data.accentColor.value
+          : this.accentColor,
+      cardFontScale: data.cardFontScale.present
+          ? data.cardFontScale.value
+          : this.cardFontScale,
+      cardFontFamily: data.cardFontFamily.present
+          ? data.cardFontFamily.value
+          : this.cardFontFamily,
+      answerButtonCount: data.answerButtonCount.present
+          ? data.answerButtonCount.value
+          : this.answerButtonCount,
+      reducedMotion: data.reducedMotion.present
+          ? data.reducedMotion.value
+          : this.reducedMotion,
+      autoBackupEnabled: data.autoBackupEnabled.present
+          ? data.autoBackupEnabled.value
+          : this.autoBackupEnabled,
+      onboardingCompleted: data.onboardingCompleted.present
+          ? data.onboardingCompleted.value
+          : this.onboardingCompleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppSettings(')
+          ..write('id: $id, ')
+          ..write('themeMode: $themeMode, ')
+          ..write('accentColor: $accentColor, ')
+          ..write('cardFontScale: $cardFontScale, ')
+          ..write('cardFontFamily: $cardFontFamily, ')
+          ..write('answerButtonCount: $answerButtonCount, ')
+          ..write('reducedMotion: $reducedMotion, ')
+          ..write('autoBackupEnabled: $autoBackupEnabled, ')
+          ..write('onboardingCompleted: $onboardingCompleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    themeMode,
+    accentColor,
+    cardFontScale,
+    cardFontFamily,
+    answerButtonCount,
+    reducedMotion,
+    autoBackupEnabled,
+    onboardingCompleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AppSettings &&
+          other.id == this.id &&
+          other.themeMode == this.themeMode &&
+          other.accentColor == this.accentColor &&
+          other.cardFontScale == this.cardFontScale &&
+          other.cardFontFamily == this.cardFontFamily &&
+          other.answerButtonCount == this.answerButtonCount &&
+          other.reducedMotion == this.reducedMotion &&
+          other.autoBackupEnabled == this.autoBackupEnabled &&
+          other.onboardingCompleted == this.onboardingCompleted);
+}
+
+class SettingsCompanion extends UpdateCompanion<AppSettings> {
+  final Value<int> id;
+  final Value<AppThemeMode> themeMode;
+  final Value<int?> accentColor;
+  final Value<double> cardFontScale;
+  final Value<String?> cardFontFamily;
+  final Value<int> answerButtonCount;
+  final Value<bool> reducedMotion;
+  final Value<bool> autoBackupEnabled;
+  final Value<bool> onboardingCompleted;
+  const SettingsCompanion({
+    this.id = const Value.absent(),
+    this.themeMode = const Value.absent(),
+    this.accentColor = const Value.absent(),
+    this.cardFontScale = const Value.absent(),
+    this.cardFontFamily = const Value.absent(),
+    this.answerButtonCount = const Value.absent(),
+    this.reducedMotion = const Value.absent(),
+    this.autoBackupEnabled = const Value.absent(),
+    this.onboardingCompleted = const Value.absent(),
+  });
+  SettingsCompanion.insert({
+    this.id = const Value.absent(),
+    this.themeMode = const Value.absent(),
+    this.accentColor = const Value.absent(),
+    this.cardFontScale = const Value.absent(),
+    this.cardFontFamily = const Value.absent(),
+    this.answerButtonCount = const Value.absent(),
+    this.reducedMotion = const Value.absent(),
+    this.autoBackupEnabled = const Value.absent(),
+    this.onboardingCompleted = const Value.absent(),
+  });
+  static Insertable<AppSettings> custom({
+    Expression<int>? id,
+    Expression<String>? themeMode,
+    Expression<int>? accentColor,
+    Expression<double>? cardFontScale,
+    Expression<String>? cardFontFamily,
+    Expression<int>? answerButtonCount,
+    Expression<bool>? reducedMotion,
+    Expression<bool>? autoBackupEnabled,
+    Expression<bool>? onboardingCompleted,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (themeMode != null) 'theme_mode': themeMode,
+      if (accentColor != null) 'accent_color': accentColor,
+      if (cardFontScale != null) 'card_font_scale': cardFontScale,
+      if (cardFontFamily != null) 'card_font_family': cardFontFamily,
+      if (answerButtonCount != null) 'answer_button_count': answerButtonCount,
+      if (reducedMotion != null) 'reduced_motion': reducedMotion,
+      if (autoBackupEnabled != null) 'auto_backup_enabled': autoBackupEnabled,
+      if (onboardingCompleted != null)
+        'onboarding_completed': onboardingCompleted,
+    });
+  }
+
+  SettingsCompanion copyWith({
+    Value<int>? id,
+    Value<AppThemeMode>? themeMode,
+    Value<int?>? accentColor,
+    Value<double>? cardFontScale,
+    Value<String?>? cardFontFamily,
+    Value<int>? answerButtonCount,
+    Value<bool>? reducedMotion,
+    Value<bool>? autoBackupEnabled,
+    Value<bool>? onboardingCompleted,
+  }) {
+    return SettingsCompanion(
+      id: id ?? this.id,
+      themeMode: themeMode ?? this.themeMode,
+      accentColor: accentColor ?? this.accentColor,
+      cardFontScale: cardFontScale ?? this.cardFontScale,
+      cardFontFamily: cardFontFamily ?? this.cardFontFamily,
+      answerButtonCount: answerButtonCount ?? this.answerButtonCount,
+      reducedMotion: reducedMotion ?? this.reducedMotion,
+      autoBackupEnabled: autoBackupEnabled ?? this.autoBackupEnabled,
+      onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (themeMode.present) {
+      map['theme_mode'] = Variable<String>(
+        $SettingsTable.$converterthemeMode.toSql(themeMode.value),
+      );
+    }
+    if (accentColor.present) {
+      map['accent_color'] = Variable<int>(accentColor.value);
+    }
+    if (cardFontScale.present) {
+      map['card_font_scale'] = Variable<double>(cardFontScale.value);
+    }
+    if (cardFontFamily.present) {
+      map['card_font_family'] = Variable<String>(cardFontFamily.value);
+    }
+    if (answerButtonCount.present) {
+      map['answer_button_count'] = Variable<int>(answerButtonCount.value);
+    }
+    if (reducedMotion.present) {
+      map['reduced_motion'] = Variable<bool>(reducedMotion.value);
+    }
+    if (autoBackupEnabled.present) {
+      map['auto_backup_enabled'] = Variable<bool>(autoBackupEnabled.value);
+    }
+    if (onboardingCompleted.present) {
+      map['onboarding_completed'] = Variable<bool>(onboardingCompleted.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SettingsCompanion(')
+          ..write('id: $id, ')
+          ..write('themeMode: $themeMode, ')
+          ..write('accentColor: $accentColor, ')
+          ..write('cardFontScale: $cardFontScale, ')
+          ..write('cardFontFamily: $cardFontFamily, ')
+          ..write('answerButtonCount: $answerButtonCount, ')
+          ..write('reducedMotion: $reducedMotion, ')
+          ..write('autoBackupEnabled: $autoBackupEnabled, ')
+          ..write('onboardingCompleted: $onboardingCompleted')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3756,6 +4361,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CardsTable cards = $CardsTable(this);
   late final $ReviewLogTable reviewLog = $ReviewLogTable(this);
   late final $MediaTable media = $MediaTable(this);
+  late final $SettingsTable settings = $SettingsTable(this);
   late final Index idxNotesFirstFieldHash = Index(
     'idx_notes_first_field_hash',
     'CREATE INDEX idx_notes_first_field_hash ON notes (first_field_hash)',
@@ -3782,6 +4388,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cards,
     reviewLog,
     media,
+    settings,
     idxNotesFirstFieldHash,
     idxCardsDeckQueueDue,
     idxReviewLogCardId,
@@ -7161,6 +7768,295 @@ typedef $$MediaTableProcessedTableManager =
       MediaFile,
       PrefetchHooks Function()
     >;
+typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
+  Value<int> id,
+  Value<AppThemeMode> themeMode,
+  Value<int?> accentColor,
+  Value<double> cardFontScale,
+  Value<String?> cardFontFamily,
+  Value<int> answerButtonCount,
+  Value<bool> reducedMotion,
+  Value<bool> autoBackupEnabled,
+  Value<bool> onboardingCompleted,
+});
+typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
+  Value<int> id,
+  Value<AppThemeMode> themeMode,
+  Value<int?> accentColor,
+  Value<double> cardFontScale,
+  Value<String?> cardFontFamily,
+  Value<int> answerButtonCount,
+  Value<bool> reducedMotion,
+  Value<bool> autoBackupEnabled,
+  Value<bool> onboardingCompleted,
+});
+
+class $$SettingsTableFilterComposer
+    extends Composer<_$AppDatabase, $SettingsTable> {
+  $$SettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<AppThemeMode, AppThemeMode, String>
+  get themeMode => $composableBuilder(
+    column: $table.themeMode,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get accentColor => $composableBuilder(
+    column: $table.accentColor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get cardFontScale => $composableBuilder(
+    column: $table.cardFontScale,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cardFontFamily => $composableBuilder(
+    column: $table.cardFontFamily,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get answerButtonCount => $composableBuilder(
+    column: $table.answerButtonCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get reducedMotion => $composableBuilder(
+    column: $table.reducedMotion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoBackupEnabled => $composableBuilder(
+    column: $table.autoBackupEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get onboardingCompleted => $composableBuilder(
+    column: $table.onboardingCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SettingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SettingsTable> {
+  $$SettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get themeMode => $composableBuilder(
+    column: $table.themeMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get accentColor => $composableBuilder(
+    column: $table.accentColor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get cardFontScale => $composableBuilder(
+    column: $table.cardFontScale,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cardFontFamily => $composableBuilder(
+    column: $table.cardFontFamily,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get answerButtonCount => $composableBuilder(
+    column: $table.answerButtonCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get reducedMotion => $composableBuilder(
+    column: $table.reducedMotion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get autoBackupEnabled => $composableBuilder(
+    column: $table.autoBackupEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get onboardingCompleted => $composableBuilder(
+    column: $table.onboardingCompleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SettingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SettingsTable> {
+  $$SettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<AppThemeMode, String> get themeMode =>
+      $composableBuilder(column: $table.themeMode, builder: (column) => column);
+
+  GeneratedColumn<int> get accentColor => $composableBuilder(
+    column: $table.accentColor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get cardFontScale => $composableBuilder(
+    column: $table.cardFontScale,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get cardFontFamily => $composableBuilder(
+    column: $table.cardFontFamily,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get answerButtonCount => $composableBuilder(
+    column: $table.answerButtonCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get reducedMotion => $composableBuilder(
+    column: $table.reducedMotion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get autoBackupEnabled => $composableBuilder(
+    column: $table.autoBackupEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get onboardingCompleted => $composableBuilder(
+    column: $table.onboardingCompleted,
+    builder: (column) => column,
+  );
+}
+
+class $$SettingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SettingsTable,
+          AppSettings,
+          $$SettingsTableFilterComposer,
+          $$SettingsTableOrderingComposer,
+          $$SettingsTableAnnotationComposer,
+          $$SettingsTableCreateCompanionBuilder,
+          $$SettingsTableUpdateCompanionBuilder,
+          (
+            AppSettings,
+            BaseReferences<_$AppDatabase, $SettingsTable, AppSettings>,
+          ),
+          AppSettings,
+          PrefetchHooks Function()
+        > {
+  $$SettingsTableTableManager(_$AppDatabase db, $SettingsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SettingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SettingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<AppThemeMode> themeMode = const Value.absent(),
+                Value<int?> accentColor = const Value.absent(),
+                Value<double> cardFontScale = const Value.absent(),
+                Value<String?> cardFontFamily = const Value.absent(),
+                Value<int> answerButtonCount = const Value.absent(),
+                Value<bool> reducedMotion = const Value.absent(),
+                Value<bool> autoBackupEnabled = const Value.absent(),
+                Value<bool> onboardingCompleted = const Value.absent(),
+              }) => SettingsCompanion(
+                id: id,
+                themeMode: themeMode,
+                accentColor: accentColor,
+                cardFontScale: cardFontScale,
+                cardFontFamily: cardFontFamily,
+                answerButtonCount: answerButtonCount,
+                reducedMotion: reducedMotion,
+                autoBackupEnabled: autoBackupEnabled,
+                onboardingCompleted: onboardingCompleted,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<AppThemeMode> themeMode = const Value.absent(),
+                Value<int?> accentColor = const Value.absent(),
+                Value<double> cardFontScale = const Value.absent(),
+                Value<String?> cardFontFamily = const Value.absent(),
+                Value<int> answerButtonCount = const Value.absent(),
+                Value<bool> reducedMotion = const Value.absent(),
+                Value<bool> autoBackupEnabled = const Value.absent(),
+                Value<bool> onboardingCompleted = const Value.absent(),
+              }) => SettingsCompanion.insert(
+                id: id,
+                themeMode: themeMode,
+                accentColor: accentColor,
+                cardFontScale: cardFontScale,
+                cardFontFamily: cardFontFamily,
+                answerButtonCount: answerButtonCount,
+                reducedMotion: reducedMotion,
+                autoBackupEnabled: autoBackupEnabled,
+                onboardingCompleted: onboardingCompleted,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SettingsTable, AppSettings>(table),
+                  BaseReferences<_$AppDatabase, $SettingsTable, AppSettings>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SettingsTable,
+      AppSettings,
+      $$SettingsTableFilterComposer,
+      $$SettingsTableOrderingComposer,
+      $$SettingsTableAnnotationComposer,
+      $$SettingsTableCreateCompanionBuilder,
+      $$SettingsTableUpdateCompanionBuilder,
+      (AppSettings, BaseReferences<_$AppDatabase, $SettingsTable, AppSettings>),
+      AppSettings,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7183,4 +8079,6 @@ class $AppDatabaseManager {
       $$ReviewLogTableTableManager(_db, _db.reviewLog);
   $$MediaTableTableManager get media =>
       $$MediaTableTableManager(_db, _db.media);
+  $$SettingsTableTableManager get settings =>
+      $$SettingsTableTableManager(_db, _db.settings);
 }

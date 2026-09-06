@@ -38,6 +38,7 @@ class DeckListScreen extends ConsumerWidget {
               PopupMenuItem(value: '/note-types', child: Text('Note types')),
               PopupMenuItem(value: '/tags', child: Text('Tags')),
               PopupMenuItem(value: '/import', child: Text('Import .apkg')),
+              PopupMenuItem(value: '/settings', child: Text('Settings')),
             ],
           ),
         ],

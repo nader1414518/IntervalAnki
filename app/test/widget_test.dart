@@ -1,6 +1,7 @@
 import 'package:app/src/app.dart';
 import 'package:app/src/data/local/app_database.dart';
 import 'package:app/src/data/local/database_provider.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,12 @@ void main() {
   testWidgets('renders the seeded Welcome deck', (tester) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
+
+    // Skip the first-run wizard: this test exercises the deck list, not
+    // onboarding, so it stands in for an existing user who's past it.
+    final settings = await db.select(db.settings).getSingle();
+    await (db.update(db.settings)..where((s) => s.id.equals(settings.id)))
+        .write(const SettingsCompanion(onboardingCompleted: Value(true)));
 
     await tester.pumpWidget(
       ProviderScope(

@@ -16,6 +16,7 @@ part 'app_database.g.dart';
     Cards,
     ReviewLog,
     Media,
+    Settings,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -26,13 +27,20 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) async {
       await migrator.createAll();
       await _seedDefaults(this);
+      await into(settings).insert(const SettingsCompanion());
+    },
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        await migrator.createTable(settings);
+        await into(settings).insert(const SettingsCompanion());
+      }
     },
   );
 }

@@ -12,6 +12,10 @@ enum ReviewRating { again, hard, good, easy }
 /// suspended or buried, since those states are never shown for grading.
 enum ReviewCardState { newCard, learning, review, relearning }
 
+/// Which brightness the app follows (PRD §4.11): the OS setting, or an
+/// explicit override.
+enum AppThemeMode { system, light, dark }
+
 /// Scheduling limits/presets, shared by one or more [Decks].
 class DeckOptions extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -159,4 +163,34 @@ class Media extends Table {
 
   @override
   Set<Column> get primaryKey => {hash};
+}
+
+/// App-wide preferences (PRD §4.11). A singleton table: exactly one row
+/// ever exists, seeded on database creation/upgrade and updated in place —
+/// there's no per-profile or per-device need to key it further in Phase 1.
+@DataClassName('AppSettings')
+class Settings extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get themeMode => textEnum<AppThemeMode>().withDefault(
+    Constant(AppThemeMode.system.name),
+  )();
+
+  /// ARGB value of a user-chosen accent color; `null` uses the app default.
+  IntColumn get accentColor => integer().nullable()();
+
+  /// Multiplier applied to card templates' base font size, e.g. `1.25`.
+  RealColumn get cardFontScale => real().withDefault(const Constant(1))();
+
+  /// A CSS `font-family` override for card rendering; `null` uses each
+  /// template's own CSS.
+  TextColumn get cardFontFamily => text().nullable()();
+
+  /// How many grading buttons the review screen shows, `2`-`4`.
+  IntColumn get answerButtonCount => integer().withDefault(const Constant(4))();
+  BoolColumn get reducedMotion =>
+      boolean().withDefault(const Constant(false))();
+  BoolColumn get autoBackupEnabled =>
+      boolean().withDefault(const Constant(true))();
+  BoolColumn get onboardingCompleted =>
+      boolean().withDefault(const Constant(false))();
 }
