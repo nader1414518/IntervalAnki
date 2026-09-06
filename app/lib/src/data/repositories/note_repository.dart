@@ -22,6 +22,26 @@ class CreateNoteResult {
   final bool wasDuplicate;
 }
 
+/// A note's current state, loaded for the editor (PRD §4.3's "unified
+/// add/edit flow" — the same screen that creates notes also edits them).
+class NoteEditData {
+  const NoteEditData({
+    required this.noteTypeId,
+    required this.fieldValues,
+    required this.tags,
+    required this.deckId,
+  });
+
+  final int noteTypeId;
+  final List<String> fieldValues;
+  final List<String> tags;
+
+  /// The deck its cards currently live in — inferred from one of them,
+  /// since deck is a property of a card, not the note itself, but every
+  /// card `create()` generates for a note starts in the same deck.
+  final int deckId;
+}
+
 /// Creates notes and the cards their note type's templates generate.
 class NoteRepository {
   NoteRepository(this._db);
@@ -81,7 +101,11 @@ class NoteRepository {
     return CreateNoteResult(noteId: noteId, wasDuplicate: wasDuplicate);
   }
 
-  Future<bool> _hasDuplicate(int noteTypeId, String firstFieldHash) async {
+  Future<bool> _hasDuplicate(
+    int noteTypeId,
+    String firstFieldHash, {
+    int? excludeNoteId,
+  }) async {
     final existing =
         await (_db.select(_db.notes)..where(
               (n) =>
@@ -89,7 +113,101 @@ class NoteRepository {
                   n.firstFieldHash.equals(firstFieldHash),
             ))
             .get();
-    return existing.isNotEmpty;
+    return existing.any((n) => n.id != excludeNoteId);
+  }
+
+  /// Loads note [noteId]'s current field values, tags, and deck, for the
+  /// editor to pre-fill.
+  Future<NoteEditData> loadForEdit(int noteId) async {
+    final note = await (_db.select(
+      _db.notes,
+    )..where((n) => n.id.equals(noteId))).getSingle();
+    final firstCard = await (_db.select(
+      _db.cards,
+    )..where((c) => c.noteId.equals(noteId))).getSingle();
+    final tags = note.tags.trim();
+    return NoteEditData(
+      noteTypeId: note.noteTypeId,
+      fieldValues: (jsonDecode(note.fieldValues) as List).cast<String>(),
+      tags: tags.isEmpty ? const [] : tags.split(RegExp(r'\s+')),
+      deckId: firstCard.deckId,
+    );
+  }
+
+  /// Updates note [noteId]'s field values/tags and, if given, moves its
+  /// cards to [deckId]. Reconciles the card set the same way [create] does,
+  /// so editing a Cloze note's deletions adds/removes cards to match rather
+  /// than leaving stale or missing ones — cards for deletions that still
+  /// exist keep their scheduling state untouched.
+  Future<bool> update({
+    required int noteId,
+    required List<String> fieldValues,
+    required List<String> tags,
+    int? deckId,
+  }) async {
+    final note = await (_db.select(
+      _db.notes,
+    )..where((n) => n.id.equals(noteId))).getSingle();
+    final firstFieldHash = hashFirstField(
+      note.noteTypeId,
+      fieldValues.isEmpty ? '' : fieldValues.first,
+    );
+    final wasDuplicate = await _hasDuplicate(
+      note.noteTypeId,
+      firstFieldHash,
+      excludeNoteId: noteId,
+    );
+
+    await _db.transaction(() async {
+      await (_db.update(_db.notes)..where((n) => n.id.equals(noteId))).write(
+        NotesCompanion(
+          fieldValues: Value(jsonEncode(fieldValues)),
+          firstFieldHash: Value(firstFieldHash),
+          tags: Value(' ${tags.join(' ')} '),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+      final existingCards = await (_db.select(
+        _db.cards,
+      )..where((c) => c.noteId.equals(noteId))).get();
+      if (existingCards.isEmpty) return;
+
+      if (deckId != null) {
+        await (_db.update(_db.cards)..where((c) => c.noteId.equals(noteId)))
+            .write(CardsCompanion(deckId: Value(deckId)));
+      }
+
+      final desiredOrds = (await _cardTemplateOrds(
+        note.noteTypeId,
+        fieldValues,
+      )).toSet();
+      final existingOrds = existingCards.map((c) => c.templateOrd).toSet();
+
+      for (final ord in desiredOrds.difference(existingOrds)) {
+        await _db
+            .into(_db.cards)
+            .insert(
+              CardsCompanion.insert(
+                noteId: noteId,
+                deckId: deckId ?? existingCards.first.deckId,
+                templateOrd: ord,
+                queue: CardQueue.newCard,
+                due: 0,
+              ),
+            );
+      }
+
+      final removedOrds = existingOrds.difference(desiredOrds);
+      if (removedOrds.isNotEmpty) {
+        await (_db.delete(_db.cards)..where(
+              (c) => c.noteId.equals(noteId) & c.templateOrd.isIn(removedOrds),
+            ))
+            .go();
+      }
+    });
+
+    return wasDuplicate;
   }
 
   /// The template ords to generate cards for: one per `Templates` row,

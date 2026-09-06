@@ -52,7 +52,12 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '/add-note',
         name: AddNoteScreen.routeName,
-        builder: (context, state) => const AddNoteScreen(),
+        builder: (context, state) {
+          final noteId = state.uri.queryParameters['noteId'];
+          return AddNoteScreen(
+            noteId: noteId == null ? null : int.parse(noteId),
+          );
+        },
       ),
       GoRoute(
         path: '/review/:deckId',

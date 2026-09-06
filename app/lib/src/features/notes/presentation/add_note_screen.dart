@@ -10,14 +10,19 @@ import '../../../data/repositories/media_repository.dart';
 import '../../../data/repositories/note_repository.dart';
 import '../../../data/repositories/note_type_repository.dart';
 
-/// Add cards to a deck: pick a deck + note type, fill in its fields, and
-/// save — the screen stays open afterwards for rapid batch entry (PRD
-/// §4.3's "batch add mode"), with a single unified flow rather than Anki's
-/// separate modal windows (PRD §5.4).
+/// Add cards to a deck, or edit an existing note: pick a deck + note type,
+/// fill in its fields, and save. In add mode, the screen stays open
+/// afterwards for rapid batch entry (PRD §4.3's "batch add mode"); passing
+/// [noteId] switches it to edit mode instead, pre-filled with that note's
+/// current values — one unified flow for both, rather than Anki's separate
+/// modal windows (PRD §5.4).
 class AddNoteScreen extends ConsumerStatefulWidget {
-  const AddNoteScreen({super.key});
+  const AddNoteScreen({this.noteId, super.key});
 
   static const routeName = 'add-note';
+
+  /// The note to edit, or `null` to add a new one.
+  final int? noteId;
 
   @override
   ConsumerState<AddNoteScreen> createState() => _AddNoteScreenState();
@@ -31,6 +36,48 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
   final _tagsController = TextEditingController();
   bool _saving = false;
   bool _selectingNoteType = false;
+  bool _loadingForEdit = false;
+
+  bool get _isEditing => widget.noteId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.noteId case final noteId?) {
+      _loadingForEdit = true;
+      unawaited(_loadForEdit(noteId));
+    }
+  }
+
+  Future<void> _loadForEdit(int noteId) async {
+    final data = await ref.read(noteRepositoryProvider).loadForEdit(noteId);
+    final detail = await ref
+        .read(noteTypeRepositoryProvider)
+        .loadDetail(data.noteTypeId);
+    final decks = await ref.read(deckListProvider.future);
+    final deck = decks.firstWhere(
+      (d) => d.id == data.deckId,
+      orElse: () => decks.first,
+    );
+    if (!mounted) return;
+    setState(() {
+      _deck = deck;
+      _noteType = detail.noteType;
+      _fields = detail.fields;
+      _fieldControllers
+        ..clear()
+        ..addAll(
+          List.generate(
+            _fields.length,
+            (i) => TextEditingController(
+              text: i < data.fieldValues.length ? data.fieldValues[i] : '',
+            ),
+          ),
+        );
+      _tagsController.text = data.tags.join(' ');
+      _loadingForEdit = false;
+    });
+  }
 
   @override
   void dispose() {
@@ -65,6 +112,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
   /// `onChanged`, so without this the fields for the displayed default note
   /// type would never actually load.
   void _selectDefaultsIfNeeded(List<Deck> decks, List<NoteType> noteTypes) {
+    if (_isEditing) return;
     if (_deck == null && decks.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _deck == null) setState(() => _deck = decks.first);
@@ -81,13 +129,20 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loadingForEdit) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Edit card')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final decks = ref.watch(deckListProvider);
     final noteTypes = ref.watch(noteTypeListProvider);
     _selectDefaultsIfNeeded(decks.value ?? [], noteTypes.value ?? []);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add cards'),
+        title: Text(_isEditing ? 'Edit card' : 'Add cards'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -106,6 +161,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                 noteTypes: noteTypes.value ?? [],
                 selectedDeck: _deck,
                 selectedNoteType: _noteType,
+                noteTypeLocked: _isEditing,
                 onDeckChanged: (deck) => setState(() => _deck = deck),
                 onNoteTypeChanged: (noteType) {
                   if (noteType != null) unawaited(_selectNoteType(noteType));
@@ -138,7 +194,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
               onPressed: _saving || _deck == null || _noteType == null
                   ? null
                   : _save,
-              child: Text(_saving ? 'Saving…' : 'Add'),
+              child: Text(_saving ? 'Saving…' : (_isEditing ? 'Save' : 'Add')),
             ),
           ],
         ),
@@ -160,16 +216,34 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
     if (deck == null || noteType == null) return;
 
     setState(() => _saving = true);
+    final fieldValues = _fieldControllers.map((c) => c.text).toList();
+    final tags = _tagsController.text
+        .split(RegExp(r'\s+'))
+        .where((tag) => tag.isNotEmpty)
+        .toList();
+
+    if (_isEditing) {
+      await ref
+          .read(noteRepositoryProvider)
+          .update(
+            noteId: widget.noteId!,
+            fieldValues: fieldValues,
+            tags: tags,
+            deckId: deck.id,
+          );
+      if (!mounted) return;
+      setState(() => _saving = false);
+      Navigator.of(context).pop(true);
+      return;
+    }
+
     final result = await ref
         .read(noteRepositoryProvider)
         .create(
           noteTypeId: noteType.id,
           deckId: deck.id,
-          fieldValues: _fieldControllers.map((c) => c.text).toList(),
-          tags: _tagsController.text
-              .split(RegExp(r'\s+'))
-              .where((tag) => tag.isNotEmpty)
-              .toList(),
+          fieldValues: fieldValues,
+          tags: tags,
         );
 
     for (final c in _fieldControllers) {
@@ -210,6 +284,7 @@ class _DeckAndNoteTypePickers extends StatelessWidget {
     required this.selectedNoteType,
     required this.onDeckChanged,
     required this.onNoteTypeChanged,
+    this.noteTypeLocked = false,
   });
 
   final List<Deck> decks;
@@ -218,6 +293,11 @@ class _DeckAndNoteTypePickers extends StatelessWidget {
   final NoteType? selectedNoteType;
   final ValueChanged<Deck?> onDeckChanged;
   final ValueChanged<NoteType?> onNoteTypeChanged;
+
+  /// Disables the note-type dropdown — editing an existing note keeps its
+  /// note type fixed rather than migrating its fields, which Anki treats as
+  /// a separate, more involved operation.
+  final bool noteTypeLocked;
 
   @override
   Widget build(BuildContext context) {
@@ -253,7 +333,7 @@ class _DeckAndNoteTypePickers extends StatelessWidget {
                   child: Text(noteType.name, overflow: TextOverflow.ellipsis),
                 ),
             ],
-            onChanged: onNoteTypeChanged,
+            onChanged: noteTypeLocked ? null : onNoteTypeChanged,
           ),
         ),
       ],

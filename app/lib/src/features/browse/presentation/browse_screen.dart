@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../data/local/tables.dart';
 import '../../../data/repositories/browse_repository.dart';
@@ -58,6 +59,16 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
       _loading = false;
       _selected.removeWhere((id) => rows.every((r) => r.card.id != id));
     });
+  }
+
+  /// Opens the unified add/edit screen (PRD §5.4) for [row]'s note, and
+  /// refreshes the results afterward since its preview text may have
+  /// changed.
+  Future<void> _openEditor(BrowseCardRow row) async {
+    final changed = await context.push<bool>(
+      '/add-note?noteId=${row.card.noteId}',
+    );
+    if (changed == true) await _search();
   }
 
   Future<void> _bulkSetQueue(CardQueue queue) async {
@@ -179,16 +190,19 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                           itemBuilder: (context, index) {
                             final row = _rows[index];
                             final selected = _selected.contains(row.card.id);
-                            return CheckboxListTile(
-                              value: selected,
-                              onChanged: (value) => setState(() {
-                                if (value ?? false) {
-                                  _selected.add(row.card.id);
-                                } else {
-                                  _selected.remove(row.card.id);
-                                }
-                              }),
-                              secondary: row.card.flag == 0
+                            void toggleSelected() => setState(() {
+                              if (selected) {
+                                _selected.remove(row.card.id);
+                              } else {
+                                _selected.add(row.card.id);
+                              }
+                            });
+                            return ListTile(
+                              leading: Checkbox(
+                                value: selected,
+                                onChanged: (_) => toggleSelected(),
+                              ),
+                              trailing: row.card.flag == 0
                                   ? null
                                   : Icon(
                                       Icons.flag,
@@ -203,6 +217,14 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                                 '${row.deckName} • ${row.noteTypeName} • '
                                 '${row.card.queue.name}',
                               ),
+                              // Tapping opens the editor normally, but while
+                              // a bulk-action selection is in progress it
+                              // extends the selection instead — otherwise a
+                              // stray tap while multi-selecting would jump
+                              // into the editor rather than adding the row.
+                              onTap: _selected.isNotEmpty
+                                  ? toggleSelected
+                                  : () => unawaited(_openEditor(row)),
                             );
                           },
                         ),
