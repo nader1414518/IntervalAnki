@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:sqlite3/sqlite3.dart' show SqliteException;
 
 import '../local/app_database.dart';
 import '../local/database_provider.dart';
@@ -16,6 +17,26 @@ class DeckNotEmptyException implements Exception {
   @override
   String toString() => 'Deck "$deckName" still has cards in it.';
 }
+
+/// Thrown when creating or renaming a deck to a name that's already taken
+/// — `Decks.name` has a UNIQUE constraint (deck names double as the
+/// `Parent::Child` nesting path, so two decks can't share one). Surfaces
+/// that as a clear, catchable error instead of a raw [SqliteException]
+/// reaching the UI.
+class DeckNameTakenException implements Exception {
+  const DeckNameTakenException(this.name);
+
+  final String name;
+
+  @override
+  String toString() => 'A deck named "$name" already exists.';
+}
+
+/// SQLite's `SQLITE_CONSTRAINT` result code (the low byte of
+/// [SqliteException.extendedResultCode]) — covers UNIQUE, which is the
+/// only constraint a deck insert/rename can actually violate here (the
+/// deck-options foreign key is always resolved to a valid id first).
+const _sqliteConstraintViolation = 19;
 
 /// Read/write access to decks, keeping Drift usage out of the UI layer.
 class DeckRepository {
@@ -48,18 +69,36 @@ class DeckRepository {
   /// Creates a new deck named [name] (use `::` for nesting, e.g.
   /// `"Spanish::Verbs"`), using the given options preset or the shared
   /// "Default" one if omitted.
+  ///
+  /// Throws [DeckNameTakenException] if [name] is already in use.
   Future<int> create(String name, {int? deckOptionsId}) async {
     final optionsId = deckOptionsId ?? await defaultDeckOptionsId();
-    return await _db
-        .into(_db.decks)
-        .insert(DecksCompanion.insert(name: name, deckOptionsId: optionsId));
+    try {
+      return await _db
+          .into(_db.decks)
+          .insert(DecksCompanion.insert(name: name, deckOptionsId: optionsId));
+    } on SqliteException catch (e) {
+      if (e.resultCode == _sqliteConstraintViolation) {
+        throw DeckNameTakenException(name);
+      }
+      rethrow;
+    }
   }
 
   /// Renames the deck [id] to [newName].
-  Future<void> rename(int id, String newName) {
-    return (_db.update(_db.decks)..where((d) => d.id.equals(id))).write(
-      DecksCompanion(name: Value(newName)),
-    );
+  ///
+  /// Throws [DeckNameTakenException] if [newName] is already in use.
+  Future<void> rename(int id, String newName) async {
+    try {
+      await (_db.update(_db.decks)..where((d) => d.id.equals(id))).write(
+        DecksCompanion(name: Value(newName)),
+      );
+    } on SqliteException catch (e) {
+      if (e.resultCode == _sqliteConstraintViolation) {
+        throw DeckNameTakenException(newName);
+      }
+      rethrow;
+    }
   }
 
   /// Deletes the deck [id]. Throws [DeckNotEmptyException] if it still has

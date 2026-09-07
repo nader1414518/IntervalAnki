@@ -24,7 +24,7 @@ class OnboardingRepository {
   ];
 
   Future<int> createFirstDeck(String deckName) async {
-    final deckId = await _deckRepository.create(deckName);
+    final deckId = await _deckRepository.create(await _uniqueName(deckName));
     final basicNoteType = await (_db.select(
       _db.noteTypes,
     )..where((t) => t.name.equals('Basic'))).getSingle();
@@ -37,6 +37,26 @@ class OnboardingRepository {
       );
     }
     return deckId;
+  }
+
+  /// Appends " (2)", " (3)", etc. until [name] doesn't collide with an
+  /// existing deck. Onboarding's default deck name is always "My First
+  /// Deck" regardless of whether the user changes it, so replaying the
+  /// wizard (Settings → "Replay the welcome tour") after already having
+  /// gone through it once — the tour resets `onboardingCompleted` but
+  /// doesn't touch the deck it created — would otherwise hit deck names'
+  /// UNIQUE constraint and crash rather than just... working.
+  Future<String> _uniqueName(String name) async {
+    var candidate = name;
+    var suffix = 2;
+    while (await (_db.select(
+          _db.decks,
+        )..where((d) => d.name.equals(candidate))).getSingleOrNull() !=
+        null) {
+      candidate = '$name ($suffix)';
+      suffix++;
+    }
+    return candidate;
   }
 }
 

@@ -82,7 +82,14 @@ class DeckListScreen extends ConsumerWidget {
   Future<void> _createDeck(BuildContext context, WidgetRef ref) async {
     final name = await showDeckNameSheet(context, title: 'New deck');
     if (name == null || name.isEmpty) return;
-    await ref.read(deckRepositoryProvider).create(name);
+    try {
+      await ref.read(deckRepositoryProvider).create(name);
+    } on DeckNameTakenException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
   }
 }
 
@@ -176,7 +183,14 @@ class _DeckTile extends ConsumerWidget {
           initialName: deck.name,
         );
         if (newName == null || newName.isEmpty) return;
-        await ref.read(deckRepositoryProvider).rename(deck.id, newName);
+        try {
+          await ref.read(deckRepositoryProvider).rename(deck.id, newName);
+        } on DeckNameTakenException catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(e.toString())));
+          }
+        }
       case _DeckAction.options:
         if (context.mounted) {
           unawaited(context.push('/deck-options/${deck.deckOptionsId}'));
