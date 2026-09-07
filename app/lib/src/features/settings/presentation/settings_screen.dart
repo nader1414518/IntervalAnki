@@ -177,7 +177,7 @@ class _SettingsBody extends ConsumerWidget {
         const _SectionHeader('Notifications'),
         SwitchListTile(
           title: const Text('Daily study reminder'),
-          subtitle: const Text('A nudge at a time you choose (PRD §4.10)'),
+          subtitle: const Text('A nudge at a time you choose'),
           value: settings.dailyReminderEnabled,
           onChanged: (value) => unawaited(_setDailyReminder(ref, value)),
         ),

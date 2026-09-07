@@ -24,6 +24,7 @@ class IntervalApp extends ConsumerWidget {
     final reducedMotion = settings?.reducedMotion ?? false;
     return MaterialApp.router(
       title: 'Interval',
+      debugShowCheckedModeBanner: false,
       theme: AppTheme.light(
         accentColor: accentColor,
         reducedMotion: reducedMotion,

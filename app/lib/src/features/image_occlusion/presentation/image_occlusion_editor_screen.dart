@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/widgets/image_source_picker.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/local/image_occlusion.dart';
 import '../../../data/repositories/deck_repository.dart';
@@ -48,8 +49,10 @@ class _ImageOcclusionEditorScreenState
   }
 
   Future<void> _pickImage() async {
+    final source = await pickImageSource(context);
+    if (source == null) return;
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
+    final picked = await picker.pickImage(source: source);
     if (picked == null) return;
     final file = File(picked.path);
     final aspectRatio = await _resolveAspectRatio(file);

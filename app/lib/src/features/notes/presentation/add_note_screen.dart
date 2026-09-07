@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
+import '../../../core/widgets/image_source_picker.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/local/media_storage.dart';
 import '../../../data/repositories/deck_repository.dart';
@@ -249,8 +250,10 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
   }
 
   Future<void> _insertImage(TextEditingController controller) async {
+    final source = await pickImageSource(context);
+    if (source == null) return;
     final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery);
+    final image = await picker.pickImage(source: source);
     if (image == null) return;
     final filename = await ref.read(mediaRepositoryProvider).add(image.path);
     _insertAtCursor(controller, '<img src="$filename">');

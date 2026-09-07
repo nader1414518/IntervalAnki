@@ -166,4 +166,24 @@ void main() {
     expect(result.cards[0].queue, ImportedCardQueue.suspended);
     expect(result.cards[1].queue, ImportedCardQueue.buried);
   });
+
+  test(
+    'a modern (anki21b) export gets a message explaining how to fix it',
+    () async {
+      final archive = Archive()
+        ..addFile(ArchiveFile('collection.anki21b', 3, [1, 2, 3]));
+      final bytes = ZipEncoder().encode(archive);
+
+      await expectLater(
+        const ApkgImporter().parseBytes(bytes),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('Support older Anki versions'),
+          ),
+        ),
+      );
+    },
+  );
 }

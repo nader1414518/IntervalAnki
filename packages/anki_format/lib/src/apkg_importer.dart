@@ -35,9 +35,26 @@ class ApkgImporter {
     final archive = ZipDecoder().decodeBytes(apkgBytes);
     final dbEntry = archive.files.firstWhere(
       (f) => f.name == 'collection.anki2' || f.name == 'collection.anki21',
-      orElse: () => throw const FormatException(
-        'No collection.anki2/anki21 database found in this .apkg',
-      ),
+      orElse: () {
+        // The zstd-compressed "anki21b" schema (Anki's default export
+        // format since schema 18) isn't supported — surface a message
+        // that explains why and how to fix it, rather than a bare
+        // "file not found" that gives no path forward.
+        final hasModernSchema = archive.files.any(
+          (f) => f.name == 'collection.anki21b',
+        );
+        if (hasModernSchema) {
+          throw const FormatException(
+            'This .apkg uses a newer Anki export format that '
+            "isn't supported yet. In Anki, re-export the deck with "
+            '"Support older Anki versions" checked, then import that '
+            'file instead.',
+          );
+        }
+        throw const FormatException(
+          'No collection.anki2/anki21 database found in this .apkg',
+        );
+      },
     );
 
     final tempDir = await Directory.systemTemp.createTemp('anki_import');
