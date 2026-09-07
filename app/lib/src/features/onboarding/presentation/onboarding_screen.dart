@@ -56,7 +56,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           (_) => const SettingsCompanion(onboardingCompleted: Value(true)),
         );
     if (!mounted) return;
-    context.go('/review/$deckId');
+    // `go` (not `push`) into the first review, on its own, replaces the
+    // entire navigation history with just that one route — the review
+    // screen would come up with nothing to pop back to, so AppBar never
+    // shows a back button and the device back gesture does nothing.
+    // Landing on the deck list first, then pushing review on top of it,
+    // gives the guided first review a real "back"/"close" target instead
+    // of being a dead end.
+    context.go('/');
+    if (!mounted) return;
+    unawaited(context.push('/review/$deckId'));
   }
 
   @override
