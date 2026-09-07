@@ -38,6 +38,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
   Deck? _deck;
   NoteType? _noteType;
   List<NoteField> _fields = [];
+  List<CardTemplate> _templates = [];
   final _fieldControllers = <TextEditingController>[];
   final _tagsController = TextEditingController();
   bool _saving = false;
@@ -45,6 +46,13 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
   bool _loadingForEdit = false;
 
   bool get _isEditing => widget.noteId != null;
+
+  /// Whether this note type actually processes `{{cN::...}}` — the
+  /// built-in Cloze type, or a custom one with a `{{cloze:Field}}`
+  /// template — so the cloze tools/tutorial are only offered where they'd
+  /// do something.
+  bool get _isClozeNoteType =>
+      _templates.any((t) => t.front.contains('{{cloze:'));
 
   @override
   void initState() {
@@ -70,6 +78,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
       _deck = deck;
       _noteType = detail.noteType;
       _fields = detail.fields;
+      _templates = detail.templates;
       _fieldControllers
         ..clear()
         ..addAll(
@@ -106,6 +115,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
     setState(() {
       _noteType = noteType;
       _fields = detail.fields;
+      _templates = detail.templates;
       _fieldControllers
         ..clear()
         ..addAll(_fields.map((_) => TextEditingController()));
@@ -159,7 +169,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
         title: Text(_isEditing ? 'Edit card' : 'Add cards'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: _saving ? null : () => unawaited(_saveAndClose()),
             child: const Text('Done'),
           ),
         ],
@@ -196,11 +206,16 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
               Expanded(
                 child: ListView(
                   children: [
+                    if (_isClozeNoteType)
+                      _ClozeBanner(
+                        onTap: () => unawaited(showClozeTutorial(context)),
+                      ),
                     for (var i = 0; i < _fields.length; i++)
                       _FieldEditor(
                         label: _fields[i].name,
                         controller: _fieldControllers[i],
                         onInsertImage: () => _insertImage(_fieldControllers[i]),
+                        showCloze: _isClozeNoteType,
                       ),
                     TextField(
                       controller: _tagsController,
@@ -233,6 +248,26 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
     if (image == null) return;
     final filename = await ref.read(mediaRepositoryProvider).add(image.path);
     _insertAtCursor(controller, '<img src="$filename">');
+  }
+
+  /// "Done" in the app bar: saves whatever's been filled in (same as the
+  /// "Add"/"Save" button) before closing, rather than silently discarding
+  /// it — the field-based flow has no other save point in edit mode, and in
+  /// add mode a card with content shouldn't be lost just because the user
+  /// tapped "Done" instead of "Add". A blank, never-touched form (or the
+  /// Image Occlusion redirect, which has no fields at all) closes without
+  /// saving, so "Done" alone doesn't create empty notes.
+  Future<void> _saveAndClose() async {
+    if (_isEditing) {
+      await _save(); // Pops the screen itself once the update completes.
+      return;
+    }
+    final hasContent = _fieldControllers.any((c) => c.text.trim().isNotEmpty);
+    if (_deck != null && _noteType != null && hasContent) {
+      await _save();
+    }
+    if (!mounted) return;
+    Navigator.of(context).pop();
   }
 
   Future<void> _save() async {
@@ -342,6 +377,185 @@ class _ImageOcclusionRedirect extends StatelessWidget {
   }
 }
 
+/// A one-line, tappable pointer to [showClozeTutorial] shown above a Cloze
+/// note's fields — more discoverable than the per-field "?" toolbar icon
+/// for someone who's never seen `{{c1::...}}` before.
+class _ClozeBanner extends StatelessWidget {
+  const _ClozeBanner({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.help_outline,
+                  size: 18,
+                  color: colorScheme.onSecondaryContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'New to cloze? Wrap text in {{c1::...}} to hide it — '
+                    'tap for a quick guide.',
+                    style: TextStyle(color: colorScheme.onSecondaryContainer),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Explains `{{cN::...}}` cloze-deletion syntax for anyone coming from a
+/// plain front/back mental model. Shown from the field toolbar's "?" and
+/// the banner above a Cloze note's fields.
+Future<void> showClozeTutorial(BuildContext context) {
+  return showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Cloze deletions'),
+      content: const SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "A cloze deletion hides part of a field's text and asks you "
+              'to recall just that part — one note can make several cards '
+              'this way, each hiding a different blank.',
+            ),
+            SizedBox(height: 16),
+            Text('Basic syntax', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 4),
+            _ClozeExample(
+              markup: 'The capital of France is {{c1::Paris}}.',
+              frontResult: 'The capital of France is [...].',
+              backResult: 'The capital of France is Paris.',
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Multiple blanks',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Use a different number for each blank you want tested on '
+              'its own card:',
+            ),
+            SizedBox(height: 4),
+            _ClozeExample(
+              markup: '{{c1::Paris}} is the capital of {{c2::France}}.',
+              frontResult:
+                  'Card 1 hides "Paris" only; Card 2 hides "France" only — '
+                  'each shows the other blank normally.',
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Grouping blanks',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Reuse the same number to hide multiple blanks together, on '
+              'one card, instead of making separate cards:',
+            ),
+            SizedBox(height: 4),
+            _ClozeExample(
+              markup:
+                  '{{c1::Add}} and {{c1::subtract}} are inverse '
+                  'operations.',
+              frontResult: '[...] and [...] are inverse operations.',
+            ),
+            SizedBox(height: 16),
+            Text('Hints', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 4),
+            Text(
+              'Add a hint after a second "::" — it replaces the plain '
+              '"..." placeholder on the front:',
+            ),
+            SizedBox(height: 4),
+            _ClozeExample(
+              markup: '{{c1::Paris::capital of France}}',
+              frontResult: '[capital of France]',
+              backResult: 'Paris',
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Tip: select the text to hide and tap the ⊙ toolbar button — '
+              'it fills in the next number for you. With nothing selected, '
+              'it drops in an empty {{cN::}} and puts the cursor right '
+              'where the hidden text goes.',
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Got it'),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ClozeExample extends StatelessWidget {
+  const _ClozeExample({
+    required this.markup,
+    required this.frontResult,
+    this.backResult,
+  });
+
+  final String markup;
+  final String frontResult;
+  final String? backResult;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'You type: $markup',
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+          ),
+          const SizedBox(height: 6),
+          Text('Front: $frontResult', style: const TextStyle(fontSize: 12)),
+          if (backResult case final back?) ...[
+            const SizedBox(height: 2),
+            Text('Back: $back', style: const TextStyle(fontSize: 12)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 void _insertAtCursor(TextEditingController controller, String text) {
   final selection = controller.selection;
   final value = controller.text;
@@ -424,11 +638,18 @@ class _FieldEditor extends StatelessWidget {
     required this.label,
     required this.controller,
     required this.onInsertImage,
+    this.showCloze = false,
   });
 
   final String label;
   final TextEditingController controller;
   final VoidCallback onInsertImage;
+
+  /// Shows the cloze-deletion button — only worth offering on a note type
+  /// that actually processes `{{cN::...}}` (the built-in Cloze type, or a
+  /// custom one with a `{{cloze:Field}}` template); on Basic and friends it
+  /// would just insert dead text that prints literally on the card.
+  final bool showCloze;
 
   void _wrap(String prefix, String suffix) {
     final selection = controller.selection;
@@ -445,6 +666,10 @@ class _FieldEditor extends StatelessWidget {
     );
   }
 
+  /// Wraps the selection in the next unused `{{cN::...}}` — or, with
+  /// nothing selected, inserts an empty one and lands the cursor right
+  /// after the `::` so the hidden text can be typed immediately, instead
+  /// of after the closing braces where you'd have to click back in.
   void _cloze() {
     final existing = RegExp(r'\{\{c(\d+)::')
         .allMatches(controller.text)
@@ -452,7 +677,23 @@ class _FieldEditor extends StatelessWidget {
     final next = existing.isEmpty
         ? 1
         : existing.reduce((a, b) => a > b ? a : b) + 1;
-    _wrap('{{c$next::', '}}');
+
+    final selection = controller.selection;
+    final text = controller.text;
+    final start = selection.start < 0 ? text.length : selection.start;
+    final end = selection.end < 0 ? text.length : selection.end;
+    final selected = text.substring(start, end);
+    final prefix = '{{c$next::';
+    const suffix = '}}';
+    final newText = text.replaceRange(start, end, '$prefix$selected$suffix');
+    final cursorOffset = selected.isEmpty
+        ? start + prefix.length
+        : start + prefix.length + selected.length + suffix.length;
+
+    controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: cursorOffset),
+    );
   }
 
   @override
@@ -490,11 +731,18 @@ class _FieldEditor extends StatelessWidget {
                 icon: const Icon(Icons.subscript),
                 onPressed: () => _wrap('<sub>', '</sub>'),
               ),
-              IconButton(
-                tooltip: 'Cloze deletion',
-                icon: const Icon(Icons.circle_outlined),
-                onPressed: _cloze,
-              ),
+              if (showCloze) ...[
+                IconButton(
+                  tooltip: 'Cloze deletion',
+                  icon: const Icon(Icons.circle_outlined),
+                  onPressed: _cloze,
+                ),
+                IconButton(
+                  tooltip: 'How cloze deletions work',
+                  icon: const Icon(Icons.help_outline),
+                  onPressed: () => unawaited(showClozeTutorial(context)),
+                ),
+              ],
               IconButton(
                 tooltip: 'Insert image',
                 icon: const Icon(Icons.image_outlined),
