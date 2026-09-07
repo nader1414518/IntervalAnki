@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Adaptive icon background: the deep-indigo base of the app icon's
+         gradient (see assets/icon/icon.png), since adaptive-icon
+         backgrounds must be a flat color or a single static drawable. -->
+    <color name="ic_launcher_background">#2A3AC4</color>
+</resources>
