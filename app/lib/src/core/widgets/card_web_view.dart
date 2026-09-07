@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 import '../../data/local/media_storage.dart';
 
@@ -51,7 +53,21 @@ class _CardWebViewState extends State<CardWebView> {
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController();
+    // Embedded `[sound:...]` clips (see CardTemplateRenderer) render as an
+    // `autoplay` <audio> element — the gesture overlay below claims every
+    // touch for tap-to-reveal/swipe-to-grade, so a manual tap on the
+    // WebView's own play button can't reach it. Autoplay sidesteps that
+    // entirely, matching Anki's own default of playing card audio
+    // automatically rather than requiring a deliberate tap.
+    final params = WebViewPlatform.instance is WebKitWebViewPlatform
+        ? WebKitWebViewControllerCreationParams(
+            mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
+          )
+        : const PlatformWebViewControllerCreationParams();
+    _controller = WebViewController.fromPlatformCreationParams(params);
+    if (_controller.platform case final AndroidWebViewController android) {
+      unawaited(android.setMediaPlaybackRequiresUserGesture(false));
+    }
     _mediaDir = MediaStorage().directoryPath();
     unawaited(_init());
   }

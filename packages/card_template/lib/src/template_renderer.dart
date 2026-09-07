@@ -8,6 +8,10 @@ final _clozeDeletion = RegExp(
   dotAll: true,
 );
 
+/// Anki's own field-text marker for embedded audio (also what `.apkg`
+/// imports carry over, so this doubles as import compatibility for free).
+final _soundTag = RegExp(r'\[sound:(.*?)\]');
+
 /// Resolves an Anki-style card template (`{{Field}}`, `{{#Field}}...
 /// {{/Field}}`, `{{cloze:Field}}`, `{{FrontSide}}`) against a note's field
 /// values.
@@ -54,7 +58,7 @@ class CardTemplateRenderer {
     String frontSide = '',
   }) {
     final withSections = _resolveSections(template, fields);
-    return withSections.replaceAllMapped(_fieldTag, (match) {
+    final withFields = withSections.replaceAllMapped(_fieldTag, (match) {
       final rawName = match.group(1)!.trim();
 
       if (rawName == 'FrontSide') return frontSide;
@@ -71,6 +75,26 @@ class CardTemplateRenderer {
 
       return fields[rawName] ?? '';
     });
+    return _renderSounds(withFields);
+  }
+
+  /// Turns a field's `[sound:filename.mp3]` marker into an `autoplay`
+  /// `<audio>` element — the marker itself is plain text a user (or an
+  /// imported `.apkg`) puts in a field, not template syntax, so it's
+  /// resolved once on the fully-substituted HTML rather than per-field.
+  ///
+  /// `autoplay` matches Anki's own behavior of playing card audio as soon
+  /// as that side renders, rather than requiring a manual tap. No
+  /// `controls`: the host `CardWebView` has a full-card gesture overlay for
+  /// tap-to-reveal and swipe-to-grade that sits above the WebView and would
+  /// swallow a tap meant for the player's own on-screen controls anyway, so
+  /// showing them would just be a dead, tappable-looking bar — the review
+  /// screen instead offers a native "replay" button of its own.
+  String _renderSounds(String html) {
+    return html.replaceAllMapped(
+      _soundTag,
+      (match) => '<audio autoplay src="${match.group(1)}"></audio>',
+    );
   }
 
   /// Resolves `{{#Field}}...{{/Field}}` (shown if non-empty) and

@@ -1,11 +1,16 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 
 import '../../../data/local/app_database.dart';
+import '../../../data/local/media_storage.dart';
 import '../../../data/repositories/deck_repository.dart';
 import '../../../data/repositories/media_repository.dart';
 import '../../../data/repositories/note_repository.dart';
@@ -215,6 +220,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                         label: _fields[i].name,
                         controller: _fieldControllers[i],
                         onInsertImage: () => _insertImage(_fieldControllers[i]),
+                        onAudioRecorded: _storeAudio,
                         showCloze: _isClozeNoteType,
                       ),
                     TextField(
@@ -248,6 +254,13 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
     if (image == null) return;
     final filename = await ref.read(mediaRepositoryProvider).add(image.path);
     _insertAtCursor(controller, '<img src="$filename">');
+  }
+
+  /// Copies a just-recorded clip (still sitting in a temp file) into media
+  /// storage the same way [_insertImage] does for photos, returning the
+  /// stored filename for [_FieldEditor] to wrap in a `[sound:...]` tag.
+  Future<String> _storeAudio(String tempFilePath) {
+    return ref.read(mediaRepositoryProvider).add(tempFilePath);
   }
 
   /// "Done" in the app bar: saves whatever's been filled in (same as the
@@ -633,11 +646,17 @@ class _DeckAndNoteTypePickers extends StatelessWidget {
   }
 }
 
-class _FieldEditor extends StatelessWidget {
+/// Matches a `[sound:filename]` marker in field text — the same tag
+/// `CardTemplateRenderer` turns into a playable `<audio>` element when a
+/// card is rendered (see `packages/card_template`).
+final _soundTagPattern = RegExp(r'\[sound:(.*?)\]');
+
+class _FieldEditor extends StatefulWidget {
   const _FieldEditor({
     required this.label,
     required this.controller,
     required this.onInsertImage,
+    required this.onAudioRecorded,
     this.showCloze = false,
   });
 
@@ -645,11 +664,47 @@ class _FieldEditor extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onInsertImage;
 
+  /// Copies a just-recorded clip into media storage and returns its stored
+  /// filename, to be wrapped in a `[sound:...]` tag.
+  final Future<String> Function(String tempFilePath) onAudioRecorded;
+
   /// Shows the cloze-deletion button — only worth offering on a note type
   /// that actually processes `{{cN::...}}` (the built-in Cloze type, or a
   /// custom one with a `{{cloze:Field}}` template); on Basic and friends it
   /// would just insert dead text that prints literally on the card.
   final bool showCloze;
+
+  @override
+  State<_FieldEditor> createState() => _FieldEditorState();
+}
+
+class _FieldEditorState extends State<_FieldEditor> {
+  final _recorder = AudioRecorder();
+  final _player = AudioPlayer();
+
+  bool _isRecording = false;
+  Duration _recordDuration = Duration.zero;
+  Timer? _recordTimer;
+  String? _playingFilename;
+
+  TextEditingController get controller => widget.controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    controller.removeListener(_onTextChanged);
+    _recordTimer?.cancel();
+    unawaited(_recorder.dispose());
+    unawaited(_player.dispose());
+    super.dispose();
+  }
+
+  void _onTextChanged() => setState(() {});
 
   void _wrap(String prefix, String suffix) {
     final selection = controller.selection;
@@ -696,8 +751,94 @@ class _FieldEditor extends StatelessWidget {
     );
   }
 
+  Future<void> _toggleRecording() async {
+    if (_isRecording) {
+      final path = await _recorder.stop();
+      _recordTimer?.cancel();
+      setState(() => _isRecording = false);
+      if (path == null) return;
+      final filename = await widget.onAudioRecorded(path);
+      _insertAtCursor(controller, '[sound:$filename]');
+      return;
+    }
+
+    if (!await _recorder.hasPermission()) return;
+    final tempDir = await getTemporaryDirectory();
+    final path = p.join(
+      tempDir.path,
+      '${DateTime.now().microsecondsSinceEpoch}.m4a',
+    );
+    try {
+      // The underlying platform recorder can hang indefinitely rather than
+      // reject its Future if the OS never resolves the mic permission it
+      // needs (seen on a freshly-created iOS Simulator before its host Mac
+      // has granted the Simulator app microphone access in System
+      // Settings) — a plain `await` here would leave the button stuck
+      // showing no feedback forever, so bound it and surface a message
+      // instead of hanging the whole field editor.
+      await _recorder
+          .start(const RecordConfig(), path: path)
+          .timeout(const Duration(seconds: 8));
+    } on Object {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Couldn't start recording — check microphone permission.",
+          ),
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _isRecording = true;
+      _recordDuration = Duration.zero;
+    });
+    _recordTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() => _recordDuration += const Duration(seconds: 1));
+    });
+  }
+
+  Future<void> _togglePlay(String filename) async {
+    if (_playingFilename == filename) {
+      await _player.stop();
+      if (mounted) setState(() => _playingFilename = null);
+      return;
+    }
+    final mediaDir = await MediaStorage().directoryPath();
+    await _player.play(DeviceFileSource(p.join(mediaDir, filename)));
+    if (!mounted) return;
+    setState(() => _playingFilename = filename);
+    unawaited(
+      _player.onPlayerComplete.first.then((_) {
+        if (mounted && _playingFilename == filename) {
+          setState(() => _playingFilename = null);
+        }
+      }),
+    );
+  }
+
+  void _removeSound(RegExpMatch match) {
+    final text = controller.text;
+    final newText = text.replaceRange(match.start, match.end, '');
+    controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: match.start),
+    );
+  }
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final soundMatches = _soundTagPattern.allMatches(controller.text).toList();
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -705,6 +846,7 @@ class _FieldEditor extends StatelessWidget {
         children: [
           Wrap(
             spacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               IconButton(
                 tooltip: 'Bold',
@@ -731,7 +873,7 @@ class _FieldEditor extends StatelessWidget {
                 icon: const Icon(Icons.subscript),
                 onPressed: () => _wrap('<sub>', '</sub>'),
               ),
-              if (showCloze) ...[
+              if (widget.showCloze) ...[
                 IconButton(
                   tooltip: 'Cloze deletion',
                   icon: const Icon(Icons.circle_outlined),
@@ -746,8 +888,26 @@ class _FieldEditor extends StatelessWidget {
               IconButton(
                 tooltip: 'Insert image',
                 icon: const Icon(Icons.image_outlined),
-                onPressed: onInsertImage,
+                onPressed: widget.onInsertImage,
               ),
+              IconButton(
+                tooltip: _isRecording ? 'Stop recording' : 'Record audio',
+                icon: Icon(
+                  _isRecording ? Icons.stop_circle : Icons.mic_none,
+                  color: _isRecording
+                      ? Theme.of(context).colorScheme.error
+                      : null,
+                ),
+                onPressed: () => unawaited(_toggleRecording()),
+              ),
+              if (_isRecording)
+                Text(
+                  _formatDuration(_recordDuration),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
             ],
           ),
           TextField(
@@ -755,12 +915,54 @@ class _FieldEditor extends StatelessWidget {
             minLines: 2,
             maxLines: 6,
             decoration: InputDecoration(
-              labelText: label,
+              labelText: widget.label,
               border: const OutlineInputBorder(),
             ),
           ),
+          if (soundMatches.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (var i = 0; i < soundMatches.length; i++)
+                    _AudioChip(
+                      label: 'Audio ${i + 1}',
+                      isPlaying: _playingFilename == soundMatches[i].group(1),
+                      onTap: () =>
+                          unawaited(_togglePlay(soundMatches[i].group(1)!)),
+                      onDelete: () => _removeSound(soundMatches[i]),
+                    ),
+                ],
+              ),
+            ),
         ],
       ),
+    );
+  }
+}
+
+class _AudioChip extends StatelessWidget {
+  const _AudioChip({
+    required this.label,
+    required this.isPlaying,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  final String label;
+  final bool isPlaying;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return InputChip(
+      avatar: Icon(isPlaying ? Icons.pause : Icons.play_arrow, size: 18),
+      label: Text(label),
+      onPressed: onTap,
+      onDeleted: onDelete,
     );
   }
 }

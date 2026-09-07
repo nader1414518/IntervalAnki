@@ -95,4 +95,31 @@ void main() {
       );
     });
   });
+
+  group('embedded audio', () {
+    test('[sound:file] becomes a playable inline audio element', () {
+      final result = renderer.renderFront('{{Front}}', {
+        'Front': 'Hola [sound:abc123.m4a]',
+      });
+      expect(result, equals('Hola <audio autoplay src="abc123.m4a"></audio>'));
+    });
+
+    test('multiple sound tags in one field each become their own element', () {
+      final result = renderer.renderFront('{{Front}}', {
+        'Front': '[sound:a.m4a] and [sound:b.mp3]',
+      });
+      expect(
+        result,
+        equals(
+          '<audio autoplay src="a.m4a"></audio> and '
+          '<audio autoplay src="b.mp3"></audio>',
+        ),
+      );
+    });
+
+    test('a field with no sound tag is left untouched', () {
+      final result = renderer.renderFront('{{Front}}', {'Front': 'Hola'});
+      expect(result, equals('Hola'));
+    });
+  });
 }

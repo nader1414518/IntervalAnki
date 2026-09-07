@@ -10,6 +10,7 @@ resolution: workspace
 dependencies:
   anki_format:
     path: ../packages/anki_format
+  audioplayers: ^6.8.1
   card_template:
     path: ../packages/card_template
   crypto: ^3.0.7
@@ -29,10 +30,13 @@ dependencies:
   image_picker: ^1.2.3
   path: ^1.9.1
   path_provider: ^2.1.6
+  record: ^7.1.1
   riverpod_annotation: ^4.0.7
   timezone: ^0.11.1
   url_launcher: ^6.3.2
   webview_flutter: ^4.14.1
+  webview_flutter_android: ^4.14.1
+  webview_flutter_wkwebview: ^3.26.1
 
 dev_dependencies:
   archive: ^4.2.0

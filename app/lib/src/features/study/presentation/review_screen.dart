@@ -1,15 +1,22 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:card_template/card_template.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fsrs/fsrs.dart' as fsrs;
+import 'package:path/path.dart' as p;
 
 import '../../../core/widgets/card_web_view.dart';
 import '../../../data/local/app_database.dart';
+import '../../../data/local/media_storage.dart';
 import '../../../data/local/tables.dart' show CardQueue;
 import '../../../data/repositories/card_repository.dart';
 import '../../../data/repositories/settings_repository.dart';
+
+/// Matches the `src="..."` of an `<audio>` element `CardTemplateRenderer`
+/// renders from a `[sound:...]` field marker, to find what to replay.
+final _audioSrcPattern = RegExp(r'<audio[^>]*\bsrc="([^"]*)"');
 
 /// The core study loop (PRD §4.5): reveal, then grade with either the
 /// answer buttons or a swipe (left = Again, right = Good, up = Easy —
@@ -41,6 +48,38 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   int? _loadingForCardId;
   bool _showingAnswer = false;
   _UndoState? _undo;
+  final _player = AudioPlayer();
+
+  @override
+  void dispose() {
+    unawaited(_player.dispose());
+    super.dispose();
+  }
+
+  /// Filenames of every `[sound:...]` clip embedded in the side currently
+  /// on screen, read back off the already-rendered HTML.
+  List<String> _currentSoundFiles() {
+    final html = _renderData == null
+        ? null
+        : (_showingAnswer ? _renderData!.back : _renderData!.front);
+    if (html == null) return const [];
+    return [
+      for (final match in _audioSrcPattern.allMatches(html)) match.group(1)!,
+    ];
+  }
+
+  /// Replays this side's embedded audio — the WebView's own gesture
+  /// overlay (tap-to-reveal, swipe-to-grade) sits above the card and would
+  /// swallow a tap meant for a native `<audio>` control, so this button is
+  /// the only way to hear a clip again on demand.
+  Future<void> _replayAudio() async {
+    final mediaDir = await MediaStorage().directoryPath();
+    for (final filename in _currentSoundFiles()) {
+      await _player.stop();
+      await _player.play(DeviceFileSource(p.join(mediaDir, filename)));
+      await _player.onPlayerComplete.first;
+    }
+  }
 
   void _scheduleLoad(StudyCard card) {
     if (_loadingForCardId == card.id) return;
@@ -136,6 +175,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           onFlag: (flag) => unawaited(_setFlag(card.id, flag)),
           onSuspend: () => unawaited(_setQueue(card.id, CardQueue.suspended)),
           onBury: () => unawaited(_setQueue(card.id, CardQueue.buried)),
+          onReplayAudio: _currentSoundFiles().isEmpty
+              ? null
+              : () => unawaited(_replayAudio()),
         ),
         Expanded(
           child: CardWebView(
@@ -188,12 +230,17 @@ class _CardToolbar extends StatelessWidget {
     required this.onFlag,
     required this.onSuspend,
     required this.onBury,
+    this.onReplayAudio,
   });
 
   final StudyCard card;
   final ValueChanged<int> onFlag;
   final VoidCallback onSuspend;
   final VoidCallback onBury;
+
+  /// Replays the current side's embedded audio; `null` when this side has
+  /// none, which hides the button rather than showing it disabled.
+  final VoidCallback? onReplayAudio;
 
   static const List<Color> _flagColors = [
     Colors.red,
@@ -210,6 +257,12 @@ class _CardToolbar extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
+        if (onReplayAudio != null)
+          IconButton(
+            icon: const Icon(Icons.volume_up_outlined),
+            tooltip: 'Replay audio',
+            onPressed: onReplayAudio,
+          ),
         PopupMenuButton<int>(
           tooltip: 'Flag',
           icon: Icon(
