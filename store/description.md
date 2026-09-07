@@ -3,7 +3,7 @@ Interval is a spaced-repetition flashcard app that decides what to show you and 
 Whether you're learning a language, studying for an exam, or memorizing anything else, Interval builds a personal review schedule from your own performance using FSRS, a modern memory-modeling algorithm, and adjusts it every time you grade a card.
 
 EVERYTHING STAYS ON YOUR DEVICE
-No account, no sign-in, no cloud sync required. Your decks, cards, and study history live in a local database on your phone — nothing is uploaded anywhere. Already have an Anki collection? Import your existing .apkg decks and keep studying right where you left off.
+No account, no sign-in, no cloud sync required. Your decks, cards, and study history live in a local database on your phone — nothing is uploaded anywhere. Automatic local backups run in the background, and you can export or restore a full backup file yourself anytime from Settings. Already have an Anki collection? Import your existing .apkg decks and keep studying right where you left off.
 
 BUILT FOR HOW YOU ACTUALLY STUDY
 • Gesture-based review — swipe to grade, tap to reveal, with buttons always available too
