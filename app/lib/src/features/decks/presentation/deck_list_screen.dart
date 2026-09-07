@@ -40,6 +40,11 @@ class DeckListScreen extends ConsumerWidget {
             tooltip: 'Browse',
             onPressed: () => unawaited(context.push('/browse')),
           ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings',
+            onPressed: () => unawaited(context.push('/settings')),
+          ),
           PopupMenuButton<String>(
             onSelected: (route) => unawaited(context.push(route)),
             itemBuilder: (context) => const [
@@ -48,7 +53,6 @@ class DeckListScreen extends ConsumerWidget {
               PopupMenuItem(value: '/trash', child: Text('Trash')),
               PopupMenuItem(value: '/stats', child: Text('Statistics')),
               PopupMenuItem(value: '/import', child: Text('Import .apkg')),
-              PopupMenuItem(value: '/settings', child: Text('Settings')),
             ],
           ),
         ],

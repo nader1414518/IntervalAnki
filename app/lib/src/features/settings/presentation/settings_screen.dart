@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/local/backup_service.dart';
 import '../../../data/local/notification_service.dart';
@@ -54,6 +55,17 @@ class _SettingsBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return ListView(
       children: [
+        const _SectionHeader('Support'),
+        ListTile(
+          title: const Text('Support Interval'),
+          subtitle: const Text(
+            'Interval is free, with no ads or paywalls — donations are '
+            'entirely optional and fund development.',
+          ),
+          trailing: const Icon(Icons.favorite_outline),
+          onTap: () => unawaited(_openDonationLink(context)),
+        ),
+        const Divider(),
         const _SectionHeader('Appearance'),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -221,16 +233,13 @@ class _SettingsBody extends ConsumerWidget {
           trailing: const Icon(Icons.file_download_outlined),
           onTap: () => unawaited(_export(context, ref)),
         ),
-        const Divider(),
-        const _SectionHeader('Support'),
         ListTile(
-          title: const Text('Support Interval'),
+          title: const Text('Restore from a backup'),
           subtitle: const Text(
-            'Interval is free, with no ads or paywalls — donations are '
-            'entirely optional and fund development.',
+            'Replaces everything currently in Interval with a backup file',
           ),
-          trailing: const Icon(Icons.favorite_outline),
-          onTap: () => unawaited(_openDonationLink(context)),
+          trailing: const Icon(Icons.file_upload_outlined),
+          onTap: () => unawaited(_restore(context, ref)),
         ),
         const Divider(),
         const _SectionHeader('Onboarding'),
@@ -248,6 +257,63 @@ class _SettingsBody extends ConsumerWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(exported ? 'Backup saved.' : 'Export canceled.')),
+    );
+  }
+
+  Future<void> _restore(BuildContext context, WidgetRef ref) async {
+    final backups = ref.read(backupServiceProvider);
+    final picked = await backups.pickBackupFile();
+    if (picked == null) return;
+
+    final bytes = await picked.readAsBytes();
+    if (!backups.looksLikeDatabase(bytes)) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("That file doesn't look like a valid backup."),
+        ),
+      );
+      return;
+    }
+    if (!context.mounted) return;
+
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Restore from backup?',
+      message:
+          'This replaces everything currently in Interval — every deck, '
+          'card, and setting — with the contents of "${picked.name}". '
+          "This can't be undone.",
+      confirmLabel: 'Restore',
+      isDestructive: true,
+    );
+    if (!confirmed) return;
+
+    // restoreFromBytes swaps the file without touching the live
+    // connection (see its own doc comment for why — closing it here
+    // deadlocks). That connection stays open but now stale, still
+    // reading/writing the pre-restore snapshot, which is why a real app
+    // restart is the only way to pick up the swapped file — the dialog
+    // below is what makes that clear instead of leaving the rest of the
+    // app silently running against stale data.
+    await backups.restoreFromBytes(bytes);
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Restore complete'),
+        content: const Text(
+          'Close Interval completely (swipe it away in your app switcher) '
+          'and reopen it to see the restored data.',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 
