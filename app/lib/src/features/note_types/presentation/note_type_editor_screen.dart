@@ -236,6 +236,7 @@ class _TemplateEditor extends StatelessWidget {
     const renderer = CardTemplateRenderer();
     final front = renderer.renderFront(controllers.front.text, fields);
     final back = renderer.renderBack(controllers.back.text, fields, front);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => Scaffold(
@@ -244,12 +245,20 @@ class _TemplateEditor extends StatelessWidget {
             children: [
               const Padding(padding: EdgeInsets.all(8), child: Text('Front')),
               Expanded(
-                child: CardWebView(html: front, css: controllers.css.text),
+                child: CardWebView(
+                  html: front,
+                  css: controllers.css.text,
+                  isDarkMode: isDarkMode,
+                ),
               ),
               const Divider(height: 1),
               const Padding(padding: EdgeInsets.all(8), child: Text('Back')),
               Expanded(
-                child: CardWebView(html: back, css: controllers.css.text),
+                child: CardWebView(
+                  html: back,
+                  css: controllers.css.text,
+                  isDarkMode: isDarkMode,
+                ),
               ),
             ],
           ),

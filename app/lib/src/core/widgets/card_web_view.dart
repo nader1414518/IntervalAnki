@@ -27,6 +27,7 @@ class CardWebView extends StatefulWidget {
     this.onVerticalDragEnd,
     this.fontScale = 1,
     this.fontFamily,
+    this.isDarkMode = false,
     super.key,
   });
 
@@ -41,6 +42,14 @@ class CardWebView extends StatefulWidget {
 
   /// A `font-family` override; `null` keeps the template's own font.
   final String? fontFamily;
+
+  /// Built-in note types (and most imported/custom ones) hardcode a plain
+  /// white `.card` background with black text, same as real Anki — without
+  /// this, every card face renders as a fixed white box regardless of the
+  /// app's own theme. `true` layers on a dark-friendly override so the card
+  /// matches the surrounding dark UI unless a template already sets its own
+  /// colors with higher CSS specificity than a plain `.card` rule.
+  final bool isDarkMode;
 
   @override
   State<CardWebView> createState() => _CardWebViewState();
@@ -84,7 +93,8 @@ class _CardWebViewState extends State<CardWebView> {
     if (oldWidget.html != widget.html ||
         oldWidget.css != widget.css ||
         oldWidget.fontScale != widget.fontScale ||
-        oldWidget.fontFamily != widget.fontFamily) {
+        oldWidget.fontFamily != widget.fontFamily ||
+        oldWidget.isDarkMode != widget.isDarkMode) {
       unawaited(_load());
     }
   }
@@ -100,6 +110,13 @@ class _CardWebViewState extends State<CardWebView> {
     }
     if (widget.fontFamily case final family?) {
       rules.writeln("body, body * { font-family: '$family' !important; }");
+    }
+    if (widget.isDarkMode) {
+      // `body.card` (specificity 0,1,1) beats a template's plain `.card`
+      // rule (0,1,0) without needing `!important`, so a template that never
+      // customized its colors picks this up while one that styles `.card`
+      // more specifically (e.g. `.card.mytheme`) still wins on its own.
+      rules.writeln('body.card { background-color: #121212; color: #e6e6e6; }');
     }
     return rules.toString();
   }

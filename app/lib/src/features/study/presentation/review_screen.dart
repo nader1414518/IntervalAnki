@@ -185,6 +185,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             css: data.css,
             fontScale: settings?.cardFontScale ?? 1,
             fontFamily: settings?.cardFontFamily,
+            isDarkMode: Theme.of(context).brightness == Brightness.dark,
             onTap: _showingAnswer
                 ? null
                 : () => setState(() => _showingAnswer = true),
