@@ -1,9 +1,12 @@
-Interval is a spaced-repetition flashcard app that decides what to show you and when, based on how well you actually remember it — so you spend review time on the things you're about to forget, not the things you already know cold.
+Interval is a spaced-repetition flashcard app that's fully compatible with Anki — import your existing .apkg decks and keep studying right where you left off, or start fresh with cards built for how you actually study.
 
-Whether you're learning a language, studying for an exam, or memorizing anything else, Interval builds a personal review schedule from your own performance using FSRS, a modern memory-modeling algorithm, and adjusts it every time you grade a card.
+Interval decides what to show you and when, based on how well you actually remember it — so you spend review time on the things you're about to forget, not the things you already know cold. Whether you're learning a language, studying for an exam, or memorizing anything else, it builds a personal review schedule from your own performance using FSRS, a modern memory-modeling algorithm, and adjusts it every time you grade a card.
+
+WORKS WITH YOUR ANKI DECKS
+Already have an Anki collection? Import it directly — Interval reads standard .apkg files, so your existing notes, cards, and media come across without any conversion step. Prefer Anki's search syntax? Interval's browse screen understands the same Anki-style query grammar, so filtering your collection feels familiar from day one.
 
 EVERYTHING STAYS ON YOUR DEVICE
-No account, no sign-in, no cloud sync required. Your decks, cards, and study history live in a local database on your phone — nothing is uploaded anywhere. Automatic local backups run in the background, and you can export or restore a full backup file yourself anytime from Settings. Already have an Anki collection? Import your existing .apkg decks and keep studying right where you left off.
+No account, no sign-in, no cloud sync required. Your decks, cards, and study history live in a local database on your phone — nothing is uploaded anywhere. Automatic local backups run in the background, and you can export or restore a full backup file yourself anytime from Settings.
 
 BUILT FOR HOW YOU ACTUALLY STUDY
 • Gesture-based review — swipe to grade, tap to reveal, with buttons always available too

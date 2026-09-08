@@ -1,4 +1,4 @@
-package com.interval.app
+package com.ec.interval
 
 import io.flutter.embedding.android.FlutterActivity
 

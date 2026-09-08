@@ -16,19 +16,19 @@ Support contact (both stores): **nader19113118@gmail.com**
 Interval
 ```
 
-**Subtitle** (30 char max) — 28 chars
+**Subtitle** (30 char max) — 26 chars
 ```
-Spaced Repetition Flashcards
-```
-
-**Promotional text** (170 char max, editable without a new review) — 125 chars
-```
-Now with audio flashcards: record your own pronunciation, embed it on any card, and hear it play automatically during review.
+Anki-Compatible Flashcards
 ```
 
-**Keywords** (100 char max, comma-separated) — 95 chars
+**Promotional text** (170 char max, editable without a new review) — 120 chars
 ```
-flashcards,spaced repetition,anki,srs,memory,study,vocabulary,language,quiz,exam,cloze,mnemonic
+Already have Anki decks? Import them directly — .apkg support, FSRS scheduling, and audio flashcards, all fully offline.
+```
+
+**Keywords** (100 char max, comma-separated) — 99 chars
+```
+anki,ankidroid,anki alternative,flashcards,apkg,spaced repetition,srs,memory,study,vocabulary,cloze
 ```
 
 **Category**
@@ -53,9 +53,9 @@ flashcards,spaced repetition,anki,srs,memory,study,vocabulary,language,quiz,exam
 Interval
 ```
 
-**Short description** (80 char max) — 78 chars
+**Short description** (80 char max) — 77 chars
 ```
-Remember anything with spaced repetition. Local flashcards, no account needed.
+Anki-compatible spaced repetition flashcards. Import .apkg decks. No account.
 ```
 
 **Full description** (4000 char max): see [description.md](description.md)
@@ -98,3 +98,18 @@ Remember anything with spaced repetition. Local flashcards, no account needed.
 - **Video preview**: not created — a 15–30s app preview video is optional on
   both stores and would need actual screen-recording tooling, not just
   screenshots.
+
+## A note on the "Anki" mentions
+
+The subtitle, keywords, promotional text, and description all lead with
+Anki compatibility on purpose — a lot of people searching either store are
+specifically looking for an Anki alternative or an app that can open their
+existing .apkg decks, and this app genuinely does both. Every mention is
+phrased as a *compatibility* claim ("Anki-compatible", "import your Anki
+decks") rather than implying this is an official Anki product or that
+Ankitects (Anki's maker) endorses it — that distinction is what keeps this
+inside both stores' trademark/metadata policies, and it's what a lot of
+other flashcard apps in this space (AnkiApp, RemNote, etc.) already do.
+Worth a final read-through against the current App Store Review Guidelines
+/ Play Console policies before submitting, since store policy specifics do
+shift over time.
