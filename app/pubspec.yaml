@@ -1,7 +1,7 @@
 name: app
 description: "Interval — a modern, Anki-compatible spaced repetition app."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.13.2
