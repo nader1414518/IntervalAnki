@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:card_template/card_template.dart';
@@ -8,6 +9,7 @@ import 'package:fsrs/fsrs.dart' as fsrs;
 import 'package:path/path.dart' as p;
 
 import '../../../core/widgets/card_web_view.dart';
+import '../../../core/widgets/liquid_glass.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/local/media_storage.dart';
 import '../../../data/local/tables.dart' show CardQueue;
@@ -137,7 +139,35 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   Widget build(BuildContext context) {
     final cardsAsync = ref.watch(dueCardsProvider(widget.deckId));
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surface
+                    .withValues(alpha: 0.7),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outline
+                        .withValues(alpha: 0.08),
+                    width: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
         title: const Text('Study'),
         actions: [
           IconButton(
@@ -170,6 +200,12 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
     return Column(
       children: [
+        // Top padding to account for the floating glass app bar (kToolbarHeight
+        // + the device status bar inset). Kept here rather than via SafeArea
+        // because the app bar's flexibleSpace already covers that region.
+        SizedBox(
+          height: kToolbarHeight + MediaQuery.of(context).padding.top - 4,
+        ),
         _CardToolbar(
           card: card,
           onFlag: (flag) => unawaited(_setFlag(card.id, flag)),
@@ -179,36 +215,58 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               ? null
               : () => unawaited(_replayAudio()),
         ),
-        Expanded(
-          child: CardWebView(
-            html: _showingAnswer ? data.back : data.front,
-            css: data.css,
-            fontScale: settings?.cardFontScale ?? 1,
-            fontFamily: settings?.cardFontFamily,
-            isDarkMode: Theme.of(context).brightness == Brightness.dark,
-            onTap: _showingAnswer
-                ? null
-                : () => setState(() => _showingAnswer = true),
-            onHorizontalDragEnd: !_showingAnswer
-                ? null
-                : (details) {
-                    final velocity = details.primaryVelocity ?? 0;
-                    if (velocity < -250) {
-                      unawaited(_grade(card, fsrs.Rating.again));
-                    }
-                    if (velocity > 250) {
-                      unawaited(_grade(card, fsrs.Rating.good));
-                    }
-                  },
-            onVerticalDragEnd: !_showingAnswer
-                ? null
-                : (details) {
-                    if ((details.primaryVelocity ?? 0) < -250) {
-                      unawaited(_grade(card, fsrs.Rating.easy));
-                    }
-                  },
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SizedBox(
+            // Fixed height for the card so short cards like "hola/hello"
+            // don't expand to fill the screen — the WebView's intrinsic
+            // size ignores maxHeight constraints, so we use a tight
+            // SizedBox. Long cards get a scrollable viewport inside.
+            height: 280,
+            child: LiquidGlass(
+              radius: 20,
+              tintOpacity: 0.75,
+              borderOpacity: 0.35,
+              shadowOpacity: 0.22,
+              padding: const EdgeInsets.all(14),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: CardWebView(
+                  html: _showingAnswer ? data.back : data.front,
+                  css: data.css,
+                  fontScale: settings?.cardFontScale ?? 1,
+                  fontFamily: settings?.cardFontFamily,
+                  isDarkMode: Theme.of(context).brightness == Brightness.dark,
+                  onTap: _showingAnswer
+                      ? null
+                      : () => setState(() => _showingAnswer = true),
+                  onHorizontalDragEnd: !_showingAnswer
+                      ? null
+                      : (details) {
+                          final velocity = details.primaryVelocity ?? 0;
+                          if (velocity < -250) {
+                            unawaited(_grade(card, fsrs.Rating.again));
+                          }
+                          if (velocity > 250) {
+                            unawaited(_grade(card, fsrs.Rating.good));
+                          }
+                        },
+                  onVerticalDragEnd: !_showingAnswer
+                      ? null
+                      : (details) {
+                          if ((details.primaryVelocity ?? 0) < -250) {
+                            unawaited(_grade(card, fsrs.Rating.easy));
+                          }
+                        },
+                ),
+              ),
+            ),
           ),
         ),
+        // Fills the remaining vertical space between the card and the
+        // answer buttons, pushing the buttons to the bottom of the screen.
+        const Spacer(),
         if (_showingAnswer)
           _AnswerButtons(
             options: options,
@@ -217,7 +275,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           )
         else
           const Padding(
-            padding: EdgeInsets.all(24),
+            padding: EdgeInsets.all(12),
             child: Text('Tap to reveal'),
           ),
       ],
@@ -255,48 +313,63 @@ class _CardToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        if (onReplayAudio != null)
-          IconButton(
-            icon: const Icon(Icons.volume_up_outlined),
-            tooltip: 'Replay audio',
-            onPressed: onReplayAudio,
-          ),
-        PopupMenuButton<int>(
-          tooltip: 'Flag',
-          icon: Icon(
-            Icons.flag,
-            color: card.flag == 0 ? null : _flagColors[card.flag - 1],
-          ),
-          onSelected: onFlag,
-          itemBuilder: (context) => [
-            const PopupMenuItem(value: 0, child: Text('No flag')),
-            for (var i = 0; i < _flagColors.length; i++)
-              PopupMenuItem(
-                value: i + 1,
-                child: Row(
-                  children: [
-                    Icon(Icons.flag, color: _flagColors[i]),
-                    const SizedBox(width: 8),
-                    Text('Flag ${i + 1}'),
-                  ],
-                ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
+      child: LiquidGlass(
+        radius: 16,
+        tintOpacity: 0.55,
+        borderOpacity: 0.2,
+        shadowOpacity: 0.1,
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (onReplayAudio != null)
+              IconButton(
+                icon: const Icon(Icons.volume_up_outlined, size: 18),
+                tooltip: 'Replay audio',
+                visualDensity: VisualDensity.compact,
+                onPressed: onReplayAudio,
               ),
+            PopupMenuButton<int>(
+              tooltip: 'Flag',
+              icon: Icon(
+                Icons.flag,
+                size: 18,
+                color: card.flag == 0 ? null : _flagColors[card.flag - 1],
+              ),
+              position: PopupMenuPosition.under,
+              onSelected: onFlag,
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 0, child: Text('No flag')),
+                for (var i = 0; i < _flagColors.length; i++)
+                  PopupMenuItem(
+                    value: i + 1,
+                    child: Row(
+                      children: [
+                        Icon(Icons.flag, color: _flagColors[i], size: 18),
+                        const SizedBox(width: 8),
+                        Text('Flag ${i + 1}'),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            IconButton(
+              icon: const Icon(Icons.visibility_off_outlined, size: 18),
+              tooltip: 'Bury',
+              visualDensity: VisualDensity.compact,
+              onPressed: onBury,
+            ),
+            IconButton(
+              icon: const Icon(Icons.pause_circle_outline, size: 18),
+              tooltip: 'Suspend',
+              visualDensity: VisualDensity.compact,
+              onPressed: onSuspend,
+            ),
           ],
         ),
-        IconButton(
-          icon: const Icon(Icons.visibility_off_outlined),
-          tooltip: 'Bury',
-          onPressed: onBury,
-        ),
-        IconButton(
-          icon: const Icon(Icons.pause_circle_outline),
-          tooltip: 'Suspend',
-          onPressed: onSuspend,
-        ),
-      ],
+      ),
     );
   }
 }
@@ -318,7 +391,7 @@ class _AnswerButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
       child: Row(
         children: [
           _gradeButton('Again', options.again, fsrs.Rating.again, Colors.red),
@@ -340,19 +413,59 @@ class _AnswerButtons extends StatelessWidget {
   ) {
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: color),
-          onPressed: () => onGrade(rating),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label),
-              Text(
-                _formatInterval(outcome.intervalDays),
-                style: const TextStyle(fontSize: 11),
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        // Solid color background, white text — the rating color carries
+        // the meaning, the text must be readable on it. The radius,
+        // shadow and a 1px translucent white inner border keep the
+        // "premium" feel without the glass tint washing the text out.
+        child: Container(
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.25),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
               ),
             ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => onGrade(rating),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      _formatInterval(outcome.intervalDays),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),

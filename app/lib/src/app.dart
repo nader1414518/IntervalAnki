@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/liquid_glass.dart';
 import 'data/local/backup_service.dart';
 import 'data/local/notification_service.dart';
 import 'data/local/tables.dart' show AppThemeMode;
@@ -40,7 +41,10 @@ class IntervalApp extends ConsumerWidget {
       },
       builder: (context, child) => MediaQuery(
         data: MediaQuery.of(context).copyWith(disableAnimations: reducedMotion),
-        child: child!,
+        // The gradient backdrop is painted once at the root — every screen's
+        // scaffold sits on it as a transparent surface, and individual
+        // LiquidGlass cards refract this gradient.
+        child: LiquidGlassBackground(child: child!),
       ),
       routerConfig: router,
     );

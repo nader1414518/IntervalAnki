@@ -4735,10 +4735,11 @@ class StudyStreak extends DataClass implements Insertable<StudyStreak> {
   final int currentStreak;
   final int longestStreak;
 
-  /// The day number (days since the Unix epoch UTC — see
-  /// `currentDayNumber()`) a card was last graded, `null` before the first
-  /// review. Used to tell whether today already extended the streak, and
-  /// how large the gap since the last study day is.
+  /// The day number (days since the Unix epoch in the user's local timezone
+  /// — see `currentDayNumber()` in `card_repository.dart`) on which a card
+  /// was last graded, `null` before the first review. Used to tell whether
+  /// today already extended the streak, and how large the gap since the
+  /// last study day is.
   final int? lastStudyDay;
 
   /// Banked "streak freezes" (PRD §4.10's protection mechanic), consumed

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
@@ -29,7 +30,37 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settingsAsync = ref.watch(settingsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surface
+                    .withValues(alpha: 0.7),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outline
+                        .withValues(alpha: 0.08),
+                    width: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        title: const Text('Settings'),
+      ),
       body: settingsAsync.when(
         data: (settings) => _SettingsBody(settings: settings),
         error: (error, stackTrace) => Center(child: Text('Error: $error')),
@@ -54,6 +85,10 @@ class _SettingsBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListView(
+      // Top padding clears the floating glass app bar.
+      padding: EdgeInsets.only(
+        top: kToolbarHeight + MediaQuery.of(context).padding.top,
+      ),
       children: [
         const _SectionHeader('Support'),
         ListTile(
@@ -248,8 +283,54 @@ class _SettingsBody extends ConsumerWidget {
           trailing: const Icon(Icons.replay),
           onTap: () => unawaited(_replayOnboarding(context, ref)),
         ),
+        const Divider(),
+        const _SectionHeader('About'),
+        const ListTile(
+          title: Text('Interval'),
+          subtitle: Text(
+            'Local-first spaced repetition, built around the FSRS scheduler. '
+            'Version 1.0.0 — © 2026 Nader Sayed.',
+          ),
+        ),
+        ListTile(
+          title: const Text('Open-source licenses'),
+          subtitle: const Text('Third-party libraries used by this app'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => unawaited(_showLicenses(context)),
+        ),
+        ListTile(
+          title: const Text('Privacy policy'),
+          trailing: const Icon(Icons.open_in_new),
+          onTap: () => unawaited(
+            _open(context, 'https://nadersayed.github.io/interval-privacy/'),
+          ),
+        ),
+        ListTile(
+          title: const Text('Contact support'),
+          subtitle: const Text('nader19113118@gmail.com'),
+          trailing: const Icon(Icons.open_in_new),
+          onTap: () => unawaited(
+            _open(context, 'mailto:nader19113118@gmail.com'),
+          ),
+        ),
       ],
     );
+  }
+
+  Future<void> _showLicenses(BuildContext context) async {
+    showLicensePage(
+      context: context,
+      applicationName: 'Interval',
+      applicationVersion: '1.0.0',
+      applicationLegalese: '© 2026 Nader Sayed',
+    );
+  }
+
+  Future<void> _open(BuildContext context, String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _export(BuildContext context, WidgetRef ref) async {

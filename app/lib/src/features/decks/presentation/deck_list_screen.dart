@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/confirm_dialog.dart';
+import '../../../core/widgets/liquid_glass.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/repositories/deck_repository.dart';
 import '../../../data/repositories/streak_repository.dart';
@@ -22,7 +24,38 @@ class DeckListScreen extends ConsumerWidget {
     final decks = ref.watch(deckListProvider);
     final streak = ref.watch(streakProvider).value;
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        // Liquid glass app bar: translucent fill, no elevation, no Material
+        // scrim under the title — the gradient shows through, and the bar
+        // floats over the deck list.
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surface
+                    .withValues(alpha: 0.7),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outline
+                        .withValues(alpha: 0.08),
+                    width: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
         title: const Text('Interval'),
         actions: [
           if (streak != null && streak.currentStreak > 0)
@@ -61,7 +94,15 @@ class DeckListScreen extends ConsumerWidget {
         data: (decks) => decks.isEmpty
             ? const _EmptyDeckList()
             : ListView.builder(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 88),
+                // Top padding clears the floating glass app bar
+                // (kToolbarHeight + status-bar inset); bottom padding keeps
+                // the last deck tile clear of the floating glass FAB.
+                padding: EdgeInsets.fromLTRB(
+                  12,
+                  kToolbarHeight + MediaQuery.of(context).padding.top + 8,
+                  12,
+                  88,
+                ),
                 itemCount: decks.length,
                 itemBuilder: (context, index) => _AnimatedEntry(
                   index: index,
@@ -71,10 +112,13 @@ class DeckListScreen extends ConsumerWidget {
         error: (error, stackTrace) => Center(child: Text('Error: $error')),
         loading: () => const Center(child: CircularProgressIndicator()),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: LiquidGlassFab(
         onPressed: () => _createDeck(context, ref),
         tooltip: 'Add deck',
-        child: const Icon(Icons.add),
+        child: Icon(
+          Icons.add,
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
     );
   }
@@ -107,60 +151,64 @@ class _DeckTile extends ConsumerWidget {
 
     return Padding(
       padding: EdgeInsets.only(left: depth * 16.0, bottom: 8),
-      child: Material(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => unawaited(context.push('/review/${deck.id}')),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
+      child: LiquidGlass(
+        radius: 20,
+        tintOpacity: 0.55,
+        borderOpacity: 0.12,
+        padding: EdgeInsets.zero,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => unawaited(context.push('/review/${deck.id}')),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.style_outlined,
+                      size: 20,
+                      color: colorScheme.primary,
+                    ),
                   ),
-                  child: Icon(
-                    Icons.style_outlined,
-                    size: 20,
-                    color: colorScheme.onPrimaryContainer,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: Theme.of(context).textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: Theme.of(context).textTheme.titleMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  PopupMenuButton<_DeckAction>(
+                    onSelected: (action) => _handleAction(context, ref, action),
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: _DeckAction.browse,
+                        child: Text('Browse cards'),
+                      ),
+                      PopupMenuItem(
+                        value: _DeckAction.rename,
+                        child: Text('Rename'),
+                      ),
+                      PopupMenuItem(
+                        value: _DeckAction.options,
+                        child: Text('Options'),
+                      ),
+                      PopupMenuItem(
+                        value: _DeckAction.delete,
+                        child: Text('Delete'),
+                      ),
+                    ],
                   ),
-                ),
-                PopupMenuButton<_DeckAction>(
-                  onSelected: (action) => _handleAction(context, ref, action),
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(
-                      value: _DeckAction.browse,
-                      child: Text('Browse cards'),
-                    ),
-                    PopupMenuItem(
-                      value: _DeckAction.rename,
-                      child: Text('Rename'),
-                    ),
-                    PopupMenuItem(
-                      value: _DeckAction.options,
-                      child: Text('Options'),
-                    ),
-                    PopupMenuItem(
-                      value: _DeckAction.delete,
-                      child: Text('Delete'),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -330,12 +378,12 @@ class _StreakBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: '$days-day streak',
-      child: Container(
+      child: LiquidGlass(
+        radius: 20,
+        tintOpacity: 0.6,
+        borderOpacity: 0.18,
+        shadowOpacity: 0.04,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(20),
-        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -343,9 +391,7 @@ class _StreakBadge extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               '$days',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-              ),
+              style: Theme.of(context).textTheme.labelLarge,
             ),
           ],
         ),

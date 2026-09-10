@@ -14,10 +14,18 @@ import 'streak_repository.dart';
 
 part 'card_repository.g.dart';
 
-/// Days since the Unix epoch (UTC), used for [Cards.due] on review/
-/// relearning cards.
-int currentDayNumber() =>
-    DateTime.now().toUtc().millisecondsSinceEpoch ~/ (24 * 60 * 60 * 1000);
+/// Days since the Unix epoch in the user's local timezone. The day boundary
+/// is local midnight, so "today" is whatever the user's wall clock says is
+/// today — a graded review at 1 AM still counts as yesterday's study day,
+/// not "already done today", and the streak / due queue / activity chart
+/// all roll over together at 00:00 local. Used for the `due` column on
+/// review/relearning cards, the streak's last-study-day, and the activity
+/// chart's per-day buckets.
+int currentDayNumber() {
+  final now = DateTime.now();
+  final localMidnight = DateTime(now.year, now.month, now.day);
+  return localMidnight.millisecondsSinceEpoch ~/ (24 * 60 * 60 * 1000);
+}
 
 /// Everything the study session needs to render one card: its note's field
 /// values, the template to render (already resolved for Cloze note types,

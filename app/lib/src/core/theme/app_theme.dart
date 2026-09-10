@@ -45,7 +45,11 @@ abstract final class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: colorScheme.surface,
+      // Transparent so the LiquidGlassBackground gradient (painted by the
+      // app-level builder) shows through. The deck list / review / settings
+      // screens are then layered on top of it, with LiquidGlass surfaces
+      // refracting it.
+      scaffoldBackgroundColor: Colors.transparent,
       // A denser default than Flutter's — the "compact" look applies
       // everywhere Material widgets read visual density from, without
       // having to touch every screen individually.

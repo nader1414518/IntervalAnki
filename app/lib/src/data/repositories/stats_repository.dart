@@ -73,9 +73,13 @@ class StatsRepository {
 
     final today = currentDayNumber();
     final windowStartDay = today - dayWindow + 1;
+    // `windowStartDay` is a local-day number from [currentDayNumber] (see
+    // the doc comment there) — round-tripping it through
+    // `millisecondsSinceEpoch` gives the matching local midnight, so the
+    // comparison against `reviewLog.reviewedAt` (also a local DateTime)
+    // includes every review done on or after the start of that local day.
     final windowStart = DateTime.fromMillisecondsSinceEpoch(
       windowStartDay * 24 * 60 * 60 * 1000,
-      isUtc: true,
     );
     final recentReviewDates =
         await (_db.selectOnly(_db.reviewLog)
@@ -87,8 +91,15 @@ class StatsRepository {
             .get();
     final countsByDay = <int, int>{};
     for (final reviewedAt in recentReviewDates) {
-      final day =
-          reviewedAt.toUtc().millisecondsSinceEpoch ~/ (24 * 60 * 60 * 1000);
+      // Bucket by the user's local calendar day so a review at 1 AM lands
+      // on yesterday's bar, not on "today after midnight" — matches the
+      // same day boundary [currentDayNumber] uses everywhere else.
+      final day = DateTime(
+        reviewedAt.year,
+        reviewedAt.month,
+        reviewedAt.day,
+      ).millisecondsSinceEpoch ~/
+          (24 * 60 * 60 * 1000);
       countsByDay[day] = (countsByDay[day] ?? 0) + 1;
     }
     final dailyCounts = [

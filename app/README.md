@@ -1,17 +1,35 @@
-# app
+# Interval
 
-A new Flutter project.
+Local-first spaced-repetition app — see [the root README](../README.md) for the
+overall project, and [`../anki-clone-flutter-prd.md`](../anki-clone-flutter-prd.md)
+for the product spec.
 
-## Getting Started
+This is the Flutter front-end. The rest of the workspace is a Dart pub workspace:
 
-This project is a starting point for a Flutter application.
+- `../packages/fsrs/` — the FSRS scheduling engine (the only scheduler this
+  app uses; SM-2 is intentionally not supported).
+- `../packages/anki_format/` — `.apkg` import and Anki schema mapping.
+- `../packages/card_template/` — Anki-compatible card template renderer.
 
-A few resources to get you started if this is your first Flutter project:
+## Run
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+This project pins its Flutter version via [fvm](https://fvm.app) — always use
+`fvm flutter`, not a global install:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+fvm install                  # one time
+fvm flutter pub get
+fvm flutter run -d "iPhone 17 Pro"
+```
+
+## Test
+
+```bash
+fvm flutter test
+```
+
+## App Store listing
+
+All the metadata, copy, and privacy policy for the App Store / Google Play
+submissions lives at `../store/`. The `store/listing.md` file is the source of
+truth for the App Store Connect fields.

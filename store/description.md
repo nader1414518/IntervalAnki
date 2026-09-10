@@ -1,9 +1,9 @@
-Interval is a spaced-repetition flashcard app that's fully compatible with Anki — import your existing .apkg decks and keep studying right where you left off, or start fresh with cards built for how you actually study.
+Interval is a local-first spaced-repetition app that uses FSRS — the modern, accuracy-tuned memory model — to decide exactly when each card should come back. Everything lives on your device: no account, no cloud, no telemetry, no third-party SDKs of any kind.
 
-Interval decides what to show you and when, based on how well you actually remember it — so you spend review time on the things you're about to forget, not the things you already know cold. Whether you're learning a language, studying for an exam, or memorizing anything else, it builds a personal review schedule from your own performance using FSRS, a modern memory-modeling algorithm, and adjusts it every time you grade a card.
+Interval decides what to show you and when, based on how well you actually remember it — so you spend review time on the things you're about to forget, not the things you already know cold. Whether you're learning a language, studying for an exam, or memorizing anything else, it builds a personal review schedule from your own performance using FSRS, and adjusts it every time you grade a card.
 
-WORKS WITH YOUR ANKI DECKS
-Already have an Anki collection? Import it directly — Interval reads standard .apkg files, so your existing notes, cards, and media come across without any conversion step. Prefer Anki's search syntax? Interval's browse screen understands the same Anki-style query grammar, so filtering your collection feels familiar from day one.
+WORKS WITH YOUR EXISTING DECKS
+Bring in any standard .apkg file and your notes, cards, and media come across without any conversion step. If you prefer Anki's search syntax, Interval's browse screen understands the same query grammar, so filtering your collection feels familiar from day one.
 
 EVERYTHING STAYS ON YOUR DEVICE
 No account, no sign-in, no cloud sync required. Your decks, cards, and study history live in a local database on your phone — nothing is uploaded anywhere. Automatic local backups run in the background, and you can export or restore a full backup file yourself anytime from Settings.
@@ -29,6 +29,6 @@ MAKE IT YOURS
 • 2, 3, or 4 answer buttons depending on how much nuance you want when grading
 
 POWERFUL BROWSING
-Search and filter your entire collection with Anki-style queries, manage tags, bulk-edit cards, and recover anything you've deleted from a built-in trash before it's gone for good.
+Search and filter your entire collection, manage tags, bulk-edit cards, and recover anything you've deleted from a built-in trash before it's gone for good.
 
 Interval is free to use, with no ads and no in-app purchases required to study. If you find it useful, there's an optional way to support development in Settings — entirely up to you.
